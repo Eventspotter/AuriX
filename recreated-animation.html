@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A24 Recreated — Complete Smooth Scroll & Dropdown Experience</title>
+
+  <!-- External CDNs matching the original tech stack -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/CustomEase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+  <style>
+    @font-face {
+      font-family: 'NeueMontreal';
+      src: url('./fonts/PPNeueMontreal-Medium.woff2') format('woff2');
+      font-weight: 500;
+    }
+    @font-face {
+      font-family: 'PPEiko';
+      src: url('./fonts/PPEiko-Regular.woff2') format('woff2');
+      font-weight: 400;
+    }
+
+    :root {
+      --nav-dock-width: 320px;
+      --nav-close-duration: 460ms;
+      --nav-scroll-fade: 48px;
+      --color-bg: #0d0d0d;
+      --color-text: #f4f4f4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      font-family: 'NeueMontreal', -apple-system, sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Film grain texture */
+    .grain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.04;
+      background-image: url('./images/noise_1noise.avif');
+      background-repeat: repeat;
+    }
+
+    /* Navigation Bar */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 24px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .nav-logo svg {
+      width: 48px;
+      height: auto;
+      color: #fff;
+      display: block;
+    }
+
+    .nav-center__list {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+      position: relative;
+    }
+
+    .nav-link {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      padding: 6px 0;
+      position: relative;
+    }
+
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0%;
+      height: 1px;
+      background: #fff;
+      transition: width 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .nav-link:hover::after, .nav-link.active::after {
+      width: 100%;
+    }
+
+    /* Dropdown Toggle SVG Arrow */
+    .nav-link__dropdown-icon {
+      width: 10px;
+      height: 6px;
+      transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    [data-dropdown-toggle="open"] .nav-link__dropdown-icon {
+      transform: rotate(180deg);
+    }
+
+    /* Dropdown Overlay Container */
+    .nav-dropdown {
+      position: absolute;
+      top: calc(100% + 12px);
+      right: -20px;
+      width: 380px;
+      max-height: 440px;
+      background: rgba(18, 18, 18, 0.94);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-12px) scale(0.98);
+      transform-origin: top right;
+      transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1),
+                  transform 0.4s cubic-bezier(0.32, 0.72, 0, 1),
+                  visibility 0.4s;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .nav-dropdown.is-open {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+    }
+
+    .nav-dropdown__content {
+      flex: 1;
+      max-height: 440px;
+      overflow-y: auto;
+      padding: 12px 0;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .nav-dropdown__content::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-dropdown__link {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 24px;
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: background 0.25s, color 0.25s, transform 0.25s;
+    }
+    .nav-dropdown__link:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      transform: translateX(4px);
+    }
+
+    .nav-dropdown__link-label {
+      font-family: 'PPEiko', serif;
+      font-size: 1.05rem;
+    }
+    .nav-dropdown__year {
+      font-family: inherit;
+      font-size: 0.75rem;
+      opacity: 0.4;
+      letter-spacing: 0.08em;
+    }
+
+    /* Custom Custom Scrollbar Indicator */
+    .nav-dropdown__scrollbar {
+      width: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      position: relative;
+      margin: 8px 4px 8px 0;
+      border-radius: 4px;
+    }
+    .nav-dropdown__scrollbar-thumb {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 20%;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    /* Hero Section with 3D Disc Wheel */
+    .hero {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #webgl-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      cursor: grab;
+    }
+    #webgl-canvas:active {
+      cursor: grabbing;
+    }
+
+    /* Film Information HUD Overlay */
+    .experience_info {
+      position: absolute;
+      top: 140px;
+      left: 60px;
+      z-index: 20;
+      pointer-events: none;
+      max-width: 460px;
+    }
+
+    .film-heading {
+      font-family: 'PPEiko', serif;
+      font-size: clamp(3rem, 6vw, 5.5rem);
+      line-height: 0.95;
+      font-weight: 400;
+      margin-bottom: 32px;
+      letter-spacing: -0.03em;
+    }
+
+    .info-content {
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .info-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      opacity: 0.45;
+    }
+    .info-val {
+      font-size: 0.95rem;
+      text-align: right;
+    }
+
+    /* Testimonial Quote HUD */
+    .testimonial_wrap {
+      position: absolute;
+      top: 140px;
+      right: 60px;
+      z-index: 20;
+      pointer-events: none;
+      text-align: right;
+      max-width: 360px;
+    }
+    .testimonial-stars {
+      display: flex;
+      justify-content: flex-end;
+      gap: 4px;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+    .testimonial-quote {
+      font-family: 'PPEiko', serif;
+      font-size: 1.45rem;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+    .testimonial-pub {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      opacity: 0.5;
+    }
+
+    /* Bottom HUD indicators */
+    .hud-footer {
+      position: absolute;
+      bottom: 40px;
+      left: 60px;
+      right: 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+      pointer-events: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 16px;
+      font-size: 0.8rem;
+      opacity: 0.6;
+    }
+
+    /* Section 2: Smooth Parallax Scroll Catalogue */
+    .catalogue-section {
+      position: relative;
+      background: #111;
+      padding: 140px 60px;
+      z-index: 30;
+      min-height: 120vh;
+    }
+
+    .catalogue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 80px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      padding-bottom: 24px;
+    }
+
+    .catalogue-title {
+      font-family: 'PPEiko', serif;
+      font-size: clamp(2.5rem, 4vw, 4rem);
+      font-weight: normal;
+    }
+
+    .catalogue-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+      gap: 48px;
+    }
+
+    .catalogue-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(60px);
+      transition: border-color 0.4s, background 0.4s;
+    }
+    .catalogue-card:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .card-media {
+      width: 100%;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #1c1c1c 0%, #0d0d0d 100%);
+      padding: 30px;
+      overflow: hidden;
+    }
+
+    .card-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.8));
+      transition: transform 0.8s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .catalogue-card:hover .card-media img {
+      transform: scale(1.08) rotate(12deg);
+    }
+
+    .card-body {
+      padding: 24px;
+    }
+    .card-body h3 {
+      font-family: 'PPEiko', serif;
+      font-size: 1.5rem;
+      margin-bottom: 6px;
+    }
+    .card-body p {
+      font-size: 0.85rem;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="grain"></div>
+
+  <!-- Main Navigation -->
+  <nav class="nav">
+    <a href="#" class="nav-logo" aria-label="A24">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 12" fill="currentColor">
+        <path d="M12.0456 1.94642C12.0883 1.91983 12.1393 1.90006 12.1796 1.87455C13.9898 0.727347 16.1146 2.72865 15.054 4.60524C14.4761 5.6276 13.2413 5.86106 12.2685 5.35496C11.93 5.17889 11.5962 4.77068 11.4465 4.42277C10.854 2.87871 11.7747 1.22522 13.2257 0.574197C14.5991 -0.0420437 16.2422 -0.0332645 17.6842 0.318468C18.9285 0.646731 20.0847 1.56595 20.3458 2.87198C20.548 3.89311 20.348 5.0347 19.6204 5.80985C18.4094 7.10011 16.6512 7.1293 15.0842 7.64158C14.6001 7.79981 13.9424 7.94736 13.5848 8.32151C13.527 8.40951 13.5162 8.62962 13.5471 8.71669C13.7063 9.16462 14.4073 9.04164 14.8306 9.04158L18.9537 9.04166C19.1304 9.04171 20.2842 9.07264 20.3497 8.9915C20.7809 8.45737 21.2529 7.95944 21.7112 7.44963L24.811 4.01753C24.9379 3.87643 25.0579 3.72366 25.186 3.58082L28.1676 0.276358C28.2318 0.206448 28.2732 0.170593 28.3458 0.111376C28.3789 0.0843216 28.4014 0.0118805 28.4406 0C28.4682 0.122638 28.4596 0.628965 28.4596 0.783089L28.4594 8.73397C28.7174 8.72665 29.0408 8.73864 29.3022 8.74249V9.06284C29.1362 9.07105 28.6194 9.08598 28.4673 9.06968C28.4393 10.0258 28.474 11.0364 28.4617 12H25.1179C25.097 11.0492 25.116 10.0293 25.116 9.07231C24.0986 9.05126 23.0732 9.08042 22.055 9.06805C21.4654 9.06088 20.8777 9.08085 20.288 9.05709C19.9773 9.44576 19.5961 9.82743 19.2665 10.202C18.9019 10.6164 18.5253 11.0208 18.1648 11.4374C18.0516 11.5683 17.725 11.8751 17.665 12H11.1014C11.0593 9.79296 12.4675 8.21051 14.4775 7.49356C15.0302 7.29643 15.6204 7.17543 16.1624 7.0237C16.6284 6.89329 16.5071 5.75105 16.5066 5.29748L16.5068 1.68997C16.5068 1.45043 16.5044 1.21639 16.5001 0.973869C16.4852 0.163911 15.6512 0.370899 15.0946 0.407034C13.9137 0.483723 12.7456 0.932769 12.0456 1.94642ZM21.0601 8.74323C21.7159 8.72191 22.3765 8.73806 23.0331 8.73807C23.7223 8.7381 24.4147 8.72303 25.1034 8.74L25.1051 5.64172C25.1054 5.18973 25.129 4.70821 25.1086 4.2592C25.1076 4.2364 25.1084 4.22285 25.093 4.20519C24.8539 4.38422 24.5032 4.8275 24.289 5.06759L22.8135 6.71472C22.6727 6.87196 22.5252 7.0231 22.3845 7.18062C22.2402 7.34242 22.1022 7.51139 21.9552 7.67044C21.758 7.88345 21.5653 8.09846 21.3714 8.31432C21.2598 8.43856 21.1195 8.55622 21.0419 8.70558L21.0426 8.73357L21.0601 8.74323Z"/>
+        <path d="M5.44675 0.327731C5.49835 0.477918 5.58354 0.617044 5.64951 0.7611C6.0219 1.57434 6.41089 2.38131 6.78716 3.19251L9.79678 9.67759C10.0708 10.2498 10.338 10.8253 10.5985 11.4038C10.6693 11.5596 10.8329 11.85 10.8557 12H7.17405C6.97854 11.5588 6.75761 11.1094 6.55924 10.6693C6.38958 10.293 6.12992 9.81504 5.9887 9.43795C5.54631 9.41561 5.05192 9.42479 4.60566 9.42462L1.5714 9.4363C1.45743 9.57504 1.15567 10.2644 1.0675 10.4545L0.339835 12H0V11.9208C0.0926468 11.8588 0.308002 11.3203 0.363348 11.2013L1.26077 9.2769L2.59144 6.43415C2.78863 6.00249 3.01158 5.57856 3.20007 5.14095C3.31697 4.86955 3.48101 4.59178 3.58469 4.31576C3.51471 4.13292 3.2352 3.576 3.22282 3.45149C3.25027 3.39493 3.61963 3.25864 3.71339 3.20962C3.98833 3.06587 4.22677 2.849 4.3783 2.56936C4.62711 2.11021 4.84546 1.6047 5.06315 1.12807C5.15728 0.915129 5.38736 0.521081 5.44675 0.327731ZM1.69948 9.09676C1.93739 9.08865 2.17672 9.09648 2.41481 9.09668L3.79869 9.09678C4.46583 9.0965 5.13923 9.07638 5.80562 9.09866C5.75403 8.90508 5.65754 8.7387 5.57401 8.55808L4.22512 5.65369C4.14843 5.4901 4.08452 5.32052 4.00467 5.15841C3.95785 5.06333 3.82141 4.74797 3.74508 4.70411C3.73696 4.69945 3.73563 4.69953 3.72597 4.6961C3.57539 5.13423 3.35039 5.54599 3.15292 5.96389L2.11049 8.22264C1.97762 8.51376 1.81685 8.79926 1.69948 9.09676Z"/>
+      </svg>
+    </a>
+
+    <ul class="nav-center__list">
+      <li><a href="#" class="nav-link active">Films</a></li>
+      <li><a href="#" class="nav-link">Television</a></li>
+      <li style="position: relative;">
+        <button class="nav-link" id="dropdown-btn" data-dropdown-toggle="closed">
+          <span>Index</span>
+          <svg class="nav-link__dropdown-icon" viewBox="0 0 10 6" fill="none">
+            <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <!-- Seamless Glassmorphic Dropdown Menu -->
+        <div class="nav-dropdown" id="dropdown-menu">
+          <div class="nav-dropdown__content" id="dropdown-scroll-list">
+            <!-- Dynamically populated from FILMS -->
+          </div>
+          <div class="nav-dropdown__scrollbar">
+            <div class="nav-dropdown__scrollbar-thumb" id="dropdown-thumb"></div>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Hero Section with 3D Disc Wheel -->
+  <section class="hero">
+    <div id="webgl-canvas"></div>
+
+    <div class="experience_info">
+      <h1 class="film-heading" id="film-title">Backrooms</h1>
+      <div class="info-content">
+        <div class="info-row">
+          <span class="info-label">Directed By</span>
+          <span class="info-val" id="film-director">Kane Parsons</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Year</span>
+          <span class="info-val" id="film-year">2026</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Starring</span>
+          <span class="info-val" id="film-starring">Chiwetel Ejiofor, Renate Reinsve</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="testimonial_wrap">
+      <div class="testimonial-stars">★★★★★</div>
+      <div class="testimonial-quote" id="film-quote">“Something Far More Haunting”</div>
+      <div class="testimonial-pub" id="film-pub">The Playlist</div>
+    </div>
+
+    <div class="hud-footer">
+      <div id="hud-index">01 / 12</div>
+      <div>DRAG OR SCROLL TO ROTATE WHEEL</div>
+    </div>
+  </section>
+
+  <!-- Section 2: Seamless Scroll Catalogue -->
+  <section class="catalogue-section">
+    <div class="catalogue-header">
+      <h2 class="catalogue-title">Production Catalogue</h2>
+      <span style="opacity: 0.5; font-size: 0.85rem; letter-spacing: 0.1em;">12 ARCHIVED RELEASES</span>
+    </div>
+    <div class="catalogue-grid" id="catalogue-cards"></div>
+  </section>
+
+  <script>
+    // Register GSAP plugins & Custom Ease
+    gsap.registerPlugin(ScrollTrigger, CustomEase);
+    CustomEase.create("discGlide", "0.32, 0.72, 0, 1");
+
+    // Initialize ultra-smooth Lenis scroll
+    const lenis = new Lenis({
+      lerp: 0.08,
+      wheelMultiplier: 1.1,
+      smoothWheel: true,
+    });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((time) => lenis.raf(time * 1000));
+    gsap.ticker.lagSmoothing(0);
+
+    // Film Dataset
+    const FILMS = [
+      {
+        title: "Backrooms",
+        director: "Kane Parsons",
+        year: "2026",
+        starring: "Chiwetel Ejiofor, Renate Reinsve",
+        quote: "Something Far More Haunting",
+        pub: "The Playlist",
+        disc: "./_cdn/a24/films/backrooms/disc.webp"
+      },
+      {
+        title: "The Invite",
+        director: "Olivia Wilde",
+        year: "2026",
+        starring: "Seth Rogen, Penélope Cruz",
+        quote: "Award-Worthy, Dazzling Sex Comedy",
+        pub: "The Times",
+        disc: "./_cdn/a24/films/the-invite/disc.webp"
+      },
+      {
+        title: "Tony",
+        director: "Matt Johnson",
+        year: "2026",
+        starring: "Dominic Sessa, Antonio Banderas",
+        quote: "Power Of The Unexpected",
+        pub: "Consequence",
+        disc: "./_cdn/a24/films/tony/disc.webp"
+      },
+      {
+        title: "Marty Supreme",
+        director: "Josh Safdie",
+        year: "2025",
+        starring: "Timothée Chalamet, Gwyneth Paltrow",
+        quote: "Chalamet’s Best Career Performance",
+        pub: "Slashfilm",
+        disc: "./_cdn/a24/films/marty-supreme/disc.webp"
+      },
+      {
+        title: "The Smashing Machine",
+        director: "Benny Safdie",
+        year: "2025",
+        starring: "Dwayne Johnson, Emily Blunt",
+        quote: "Subtler And More Moving",
+        pub: "Variety",
+        disc: "./_cdn/a24/films/the-smashing-machine/disc.webp"
+      },
+      {
+        title: "The Brutalist",
+        director: "Brady Corbet",
+        year: "2024",
+        starring: "Adrien Brody, Felicity Jones",
+        quote: "Thrilling Directness And Force",
+        pub: "The Guardian",
+        disc: "./_cdn/a24/films/the-brutalist/disc.webp"
+      },
+      {
+        title: "The Zone of Interest",
+        director: "Jonathan Glazer",
+        year: "2023",
+        starring: "Sandra Hüller, Christian Friedel",
+        quote: "Chilling And Profound",
+        pub: "Variety",
+        disc: "./_cdn/a24/films/the-zone-of-interest/disc.webp"
+      },
+      {
+        title: "Everything Everywhere All at Once",
+        director: "Daniels",
+        year: "2022",
+        starring: "Michelle Yeoh, Ke Huy Quan",
+        quote: "An Orgiastic Work Of Genius",
+        pub: "IndieWire",
+        disc: "./_cdn/a24/films/everything-everywhere-all-at-once/disc.webp"
+      },
+      {
+        title: "Uncut Gems",
+        director: "Safdie Brothers",
+        year: "2019",
+        starring: "Adam Sandler, Julia Fox",
+        quote: "Delusion Feeds Addiction",
+        pub: "RogerEbert.com",
+        disc: "./_cdn/a24/films/uncut-gems/disc.webp"
+      },
+      {
+        title: "Hereditary",
+        director: "Ari Aster",
+        year: "2018",
+        starring: "Toni Collette, Alex Wolff",
+        quote: "A Brilliant Machine For Scaring Us",
+        pub: "The Guardian",
+        disc: "./_cdn/a24/films/hereditary/disc.webp"
+      },
+      {
+        title: "Lady Bird",
+        director: "Greta Gerwig",
+        year: "2017",
+        starring: "Saoirse Ronan, Timothée Chalamet",
+        quote: "As Warm As It Is Smart",
+        pub: "Los Angeles Times",
+        disc: "./_cdn/a24/films/lady-bird/disc.webp"
+      },
+      {
+        title: "Ex Machina",
+        director: "Alex Garland",
+        year: "2015",
+        starring: "Oscar Isaac, Alicia Vikander",
+        quote: "Shrewdly Imagined And Made",
+        pub: "Los Angeles Times",
+        disc: "./_cdn/a24/films/ex-machina/disc.webp"
+      }
+    ];
+
+    /* ========================================================
+       1. DROPDOWN SEAMLESS ANIMATION & CUSTOM SCROLLBAR
+       ======================================================== */
+    const dropdownBtn = document.getElementById('dropdown-btn');
+    const dropdownMenu = document.getElementById('dropdown-menu');
+    const dropdownScrollList = document.getElementById('dropdown-scroll-list');
+    const dropdownThumb = document.getElementById('dropdown-thumb');
+
+    // Populate dropdown list
+    FILMS.forEach((film, index) => {
+      const item = document.createElement('a');
+      item.href = '#';
+      item.className = 'nav-dropdown__link';
+      item.innerHTML = `
+        <span class="nav-dropdown__link-label">${film.title}</span>
+        <span class="nav-dropdown__year">${film.year}</span>
+      `;
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        rotateToIndex(index);
+        closeDropdown();
+      });
+      dropdownScrollList.appendChild(item);
+    });
+
+    let isDropdownOpen = false;
+
+    function openDropdown() {
+      isDropdownOpen = true;
+      dropdownBtn.setAttribute('data-dropdown-toggle', 'open');
+      dropdownMenu.classList.add('is-open');
+      updateDropdownScrollbar();
+    }
+
+    function closeDropdown() {
+      isDropdownOpen = false;
+      dropdownBtn.setAttribute('data-dropdown-toggle', 'closed');
+      dropdownMenu.classList.remove('is-open');
+    }
+
+    dropdownBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isDropdownOpen ? closeDropdown() : openDropdown();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!dropdownMenu.contains(e.target) && !dropdownBtn.contains(e.target)) {
+        closeDropdown();
+      }
+    });
+
+    // Custom smooth scrollbar progress inside dropdown
+    function updateDropdownScrollbar() {
+      const scrollHeight = dropdownScrollList.scrollHeight;
+      const clientHeight = dropdownScrollList.clientHeight;
+      const scrollTop = dropdownScrollList.scrollTop;
+      const maxScroll = scrollHeight - clientHeight;
+
+      if (maxScroll <= 0) {
+        dropdownThumb.style.display = 'none';
+        return;
+      }
+      dropdownThumb.style.display = 'block';
+
+      const thumbHeight = Math.max(24, (clientHeight / scrollHeight) * clientHeight);
+      dropdownThumb.style.height = `${thumbHeight}px`;
+
+      const travel = clientHeight - thumbHeight;
+      const progress = scrollTop / maxScroll;
+      dropdownThumb.style.transform = `translateY(${progress * travel}px)`;
+    }
+
+    dropdownScrollList.addEventListener('scroll', updateDropdownScrollbar, { passive: true });
+
+    /* ========================================================
+       2. THREE.JS 3D OPTICAL DISC WHEEL GALLERY
+       ======================================================== */
+    const canvasContainer = document.getElementById('webgl-canvas');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 7.2);
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    canvasContainer.appendChild(renderer.domElement);
+
+    // Studio lighting matching original RectAreaLight rig
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 2.2);
+    dirLight1.position.set(4, 5, 8);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0xeeeeff, 1.5);
+    dirLight2.position.set(-5, -2, 4);
+    scene.add(dirLight2);
+
+    // Disc Geometry creation
+    const DISC_RADIUS = 1.95;
+    const DISC_HOLE = 0.28;
+    const discShape = new THREE.Shape();
+    discShape.absarc(0, 0, DISC_RADIUS, 0, Math.PI * 2, false);
+    const hole = new THREE.Path();
+    hole.absarc(0, 0, DISC_HOLE, 0, Math.PI * 2, true);
+    discShape.holes.push(hole);
+
+    const extrudeSettings = {
+      depth: 0.035,
+      bevelEnabled: true,
+      bevelSegments: 4,
+      steps: 1,
+      bevelSize: 0.012,
+      bevelThickness: 0.012
+    };
+    const discGeometry = new THREE.ExtrudeGeometry(discShape, extrudeSettings);
+    discGeometry.center();
+
+    const textureLoader = new THREE.TextureLoader();
+    const carouselGroup = new THREE.Group();
+    scene.add(carouselGroup);
+
+    const discMeshes = [];
+    const NUM_DISCS = FILMS.length;
+    const CAROUSEL_RADIUS = 4.1;
+    const angleStep = (Math.PI * 2) / NUM_DISCS;
+
+    FILMS.forEach((film, i) => {
+      const tex = textureLoader.load(film.disc);
+      tex.colorSpace = THREE.SRGBColorSpace;
+
+      const mat = new THREE.MeshPhysicalMaterial({
+        map: tex,
+        roughness: 0.22,
+        metalness: 0.18,
+        clearcoat: 0.85,
+        clearcoatRoughness: 0.08,
+        reflectivity: 0.9,
+        side: THREE.DoubleSide
+      });
+
+      const mesh = new THREE.Mesh(discGeometry, mat);
+      mesh.userData = { index: i, film: film };
+      carouselGroup.add(mesh);
+      discMeshes.push(mesh);
+    });
+
+    let currentIndex = 0;
+    let targetRotation = 0;
+    let currentRotation = 0;
+
+    function updateDiscPositions() {
+      discMeshes.forEach((mesh, i) => {
+        const theta = (i * angleStep) + currentRotation;
+        const x = Math.sin(theta) * CAROUSEL_RADIUS + 1.25;
+        const z = Math.cos(theta) * CAROUSEL_RADIUS - 1.5;
+        const y = Math.sin(theta * 1.5) * 0.12;
+
+        mesh.position.set(x, y, z);
+        mesh.rotation.y = theta + Math.PI;
+        mesh.rotation.x = 0.22;
+        mesh.rotation.z = Math.sin(theta) * 0.08;
+
+        const frontProximity = (Math.cos(theta) + 1) / 2;
+        const scale = 0.85 + (frontProximity * 0.35);
+        mesh.scale.set(scale, scale, scale);
+      });
+    }
+
+    function rotateToIndex(index) {
+      const snappedRotation = -index * angleStep;
+      gsap.to({ rot: targetRotation }, {
+        rot: snappedRotation,
+        duration: 1.1,
+        ease: "discGlide",
+        onUpdate: function() {
+          targetRotation = this.targets()[0].rot;
+        },
+        onComplete: () => {
+          currentIndex = index;
+          updateHUD(currentIndex);
+        }
+      });
+    }
+
+    function snapToNearest() {
+      const nearestIdx = Math.round(-targetRotation / angleStep);
+      const snappedRotation = -nearestIdx * angleStep;
+
+      gsap.to({ rot: targetRotation }, {
+        rot: snappedRotation,
+        duration: 0.95,
+        ease: "discGlide",
+        onUpdate: function() {
+          targetRotation = this.targets()[0].rot;
+        },
+        onComplete: () => {
+          const normalized = ((nearestIdx % NUM_DISCS) + NUM_DISCS) % NUM_DISCS;
+          if (normalized !== currentIndex) {
+            currentIndex = normalized;
+            updateHUD(currentIndex);
+          }
+        }
+      });
+    }
+
+    // Touch & pointer interaction
+    let isDragging = false;
+    let startX = 0;
+    let prevRotation = 0;
+
+    window.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.nav') || e.target.closest('.catalogue-section')) return;
+      isDragging = true;
+      startX = e.clientX;
+      prevRotation = targetRotation;
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - startX;
+      targetRotation = prevRotation + (deltaX * 0.005);
+    });
+
+    window.addEventListener('pointerup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      snapToNearest();
+    });
+
+    // Discrete wheel scrolling in hero
+    window.addEventListener('wheel', (e) => {
+      if (window.scrollY < window.innerHeight * 0.5) {
+        targetRotation -= e.deltaY * 0.0015;
+        snapToNearest();
+      }
+    }, { passive: true });
+
+    // HUD Text Switcher with GSAP
+    function updateHUD(idx) {
+      const film = FILMS[idx];
+      const elements = ['#film-title', '#film-director', '#film-year', '#film-starring', '#film-quote', '#film-pub'];
+
+      gsap.to(elements, {
+        opacity: 0,
+        y: -8,
+        duration: 0.25,
+        ease: "power2.out",
+        onComplete: () => {
+          document.getElementById('film-title').textContent = film.title;
+          document.getElementById('film-director').textContent = film.director;
+          document.getElementById('film-year').textContent = film.year;
+          document.getElementById('film-starring').textContent = film.starring;
+          document.getElementById('film-quote').textContent = `“${film.quote}”`;
+          document.getElementById('film-pub').textContent = film.pub;
+          document.getElementById('hud-index').textContent = `${String(idx + 1).padStart(2, '0')} / ${String(NUM_DISCS).padStart(2, '0')}`;
+
+          gsap.to(elements, {
+            opacity: 1,
+            y: 0,
+            duration: 0.5,
+            stagger: 0.025,
+            ease: "discGlide"
+          });
+        }
+      });
+    }
+
+    /* ========================================================
+       3. SEAMLESS SCROLL TRIGGER CARD GRID
+       ======================================================== */
+    const cardsGrid = document.getElementById('catalogue-cards');
+    FILMS.forEach((film) => {
+      const card = document.createElement('div');
+      card.className = 'catalogue-card';
+      card.innerHTML = `
+        <div class="card-media">
+          <img src="${film.disc}" alt="${film.title}">
+        </div>
+        <div class="card-body">
+          <h3>${film.title}</h3>
+          <p>${film.director} • ${film.year}</p>
+        </div>
+      `;
+      cardsGrid.appendChild(card);
+    });
+
+    gsap.utils.toArray('.catalogue-card').forEach((card, i) => {
+      gsap.to(card, {
+        scrollTrigger: {
+          trigger: card,
+          start: "top 88%",
+          toggleActions: "play none none reverse"
+        },
+        opacity: 1,
+        y: 0,
+        duration: 0.9,
+        ease: "discGlide",
+        delay: (i % 3) * 0.08
+      });
+    });
+
+    /* ========================================================
+       4. ANIMATION RENDER LOOP & RESIZE
+       ======================================================== */
+    function render() {
+      requestAnimationFrame(render);
+      currentRotation += (targetRotation - currentRotation) * 0.08;
+      updateDiscPositions();
+      carouselGroup.rotation.y = Math.sin(Date.now() * 0.0004) * 0.04;
+      renderer.render(scene, camera);
+    }
+    render();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

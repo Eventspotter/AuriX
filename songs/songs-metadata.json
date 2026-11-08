@@ -1,0 +1,66 @@
+[
+  {
+    "file": "[SPOTIFY-DOWNLOADER.COM] Bandeya Rey Bandeya.mp3",
+    "title": "﻿Bandeya Rey Bandeya",
+    "artist": "﻿Arijit Singh/Asees Kaur",
+    "album": "﻿Simmba",
+    "year": "2018",
+    "art": "./songs/art/song_1.jpg"
+  },
+  {
+    "file": "[SPOTIFY-DOWNLOADER.COM] Be Free.mp3",
+    "title": "﻿Be Free",
+    "artist": "﻿Vidya Vox",
+    "album": "﻿Kuthu Fire",
+    "year": "2017",
+    "art": "./songs/art/song_2.jpg"
+  },
+  {
+    "file": "[SPOTIFY-DOWNLOADER.COM] Bekhayali (Arijit Singh Version).mp3",
+    "title": "﻿Bekhayali (Arijit Singh Version)",
+    "artist": "﻿Arijit Singh",
+    "album": "﻿Kabir Singh",
+    "year": "2019",
+    "art": "./songs/art/song_3.jpg"
+  },
+  {
+    "file": "[SPOTIFY-DOWNLOADER.COM] Bing Bing Boo!.mp3",
+    "title": "﻿Bing Bing Boo!",
+    "artist": "﻿Yashraj Mukhate/Rashmeet Kaur/Kisna",
+    "album": "﻿Bing Bing Boo!",
+    "year": "2021",
+    "art": "./songs/art/song_4.jpg"
+  },
+  {
+    "file": "[SPOTIFY-DOWNLOADER.COM] Bones.mp3",
+    "title": "﻿Bones",
+    "artist": "﻿Imagine Dragons",
+    "album": "﻿Bones",
+    "year": "2022",
+    "art": "./songs/art/song_5.jpg"
+  },
+  {
+    "file": "[SPOTIFY-DOWNLOADER.COM] Chammak Challo.mp3",
+    "title": "﻿Chammak Challo",
+    "artist": "﻿Akon/Hamsika Iyer",
+    "album": "﻿Ra-One",
+    "year": "2011",
+    "art": "./songs/art/song_6.jpg"
+  },
+  {
+    "file": "[SPOTIFY-DOWNLOADER.COM] Chaudhary.mp3",
+    "title": "﻿Chaudhary",
+    "artist": "﻿Mame Khan",
+    "album": "﻿Folk @ Coke Studio @ MTV",
+    "year": "2014",
+    "art": "./songs/art/song_7.jpg"
+  },
+  {
+    "file": "[SPOTIFY-DOWNLOADER.COM] Count on Me.mp3",
+    "title": "﻿Count on Me",
+    "artist": "﻿Bruno Mars",
+    "album": "﻿Doo-Wops & Hooligans",
+    "year": "2010",
+    "art": "./songs/art/song_8.jpg"
+  }
+]
