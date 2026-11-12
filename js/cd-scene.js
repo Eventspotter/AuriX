@@ -356,6 +356,11 @@ function createCDTextureForSong(song) {
       if (img.complete && img.naturalWidth > 0) {
         ctx.save();
         ctx.globalAlpha = 0.98;
+        if (song.rotation) {
+          ctx.translate(center, center);
+          ctx.rotate((song.rotation * Math.PI) / 180);
+          ctx.translate(-center, -center);
+        }
         const scale = Math.max(1024 / img.naturalWidth, 1024 / img.naturalHeight);
         const w = img.naturalWidth * scale;
         const h = img.naturalHeight * scale;
@@ -407,12 +412,6 @@ function createCDTextureForSong(song) {
         ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
         ctx.fillText(song.artist.toUpperCase(), center, center + 120);
       }
-
-      // AuriX Brand stamp
-      ctx.font = "bold 28px 'PPEiko', serif";
-      ctx.fillStyle = "#ffffff";
-      ctx.textAlign = "center";
-      ctx.fillText("AuriX", center, 855);
       ctx.restore();
 
       ctx.restore(); // end clip

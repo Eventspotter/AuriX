@@ -54,10 +54,12 @@ function animate() {
     updateScribbleAnimation(performance.now());
   }
 
-  // Spin active disc subtly when music is playing (around local spin group)
-  if (isAudioPlaying && discMeshes[activeIndex]?.userData?.spinGroup) {
-    discMeshes[activeIndex].userData.spinGroup.rotation.z += 0.005;
-  }
+  // Maintain authentic A24 disc orientation without off-axis drift
+  discMeshes.forEach(mesh => {
+    if (mesh.userData?.spinGroup && mesh.userData.spinGroup.rotation.z !== 0) {
+      mesh.userData.spinGroup.rotation.z = 0;
+    }
+  });
 
   if (renderer && scene && camera) {
     renderer.render(scene, camera);
