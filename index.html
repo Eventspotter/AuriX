@@ -60,14 +60,24 @@
     }
 
     /* ========================================================
-       TOP NAVIGATION BAR (Centered & Responsive)
+       AUTHENTIC A24 TOP NAVIGATION & DROPDOWN OPENING
        ======================================================== */
     .nav {
+      --nav-open-height: 24em;
+      --nav-scroll-fade: 2.8em;
+      --nav-ease: cubic-bezier(.32, .72, 0, 1);
+      --nav-open-duration: .62s;
+      --nav-close-duration: .46s;
+      --nav-active-bg: var(--text-color, #111111);
+      --nav-active-text: #ffffff;
+      --nav-dot-gap: .3em;
+
       position: fixed;
       top: 0;
       left: 0;
+      right: 0;
       width: 100%;
-      padding: 24px 32px;
+      height: 4.5em;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -75,22 +85,66 @@
       pointer-events: none;
     }
 
+    /* Unrolling Card Background (28em width, exactly centered) */
+    .nav-bg {
+      position: absolute;
+      inset: 0% 0% auto;
+      width: 28em;
+      height: 0px;
+      margin-left: auto;
+      margin-right: auto;
+      background-color: #ffffff;
+      border-bottom-left-radius: 0.75em;
+      border-bottom-right-radius: 0.75em;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+      pointer-events: none;
+      will-change: height;
+      transition: height var(--nav-close-duration) var(--nav-ease);
+    }
+
+    .nav[data-nav-dropdown="open"] .nav-bg {
+      height: var(--nav-open-height);
+      transition-duration: var(--nav-open-duration);
+    }
+
+    /* Background Tint Overlay */
+    .page-bg {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.22);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 90;
+      transition: opacity var(--nav-close-duration) var(--nav-ease);
+    }
+
+    .nav[data-nav-dropdown="open"] ~ .page-bg,
+    .page-bg.is-active {
+      opacity: 1;
+      pointer-events: auto;
+      transition-duration: var(--nav-open-duration);
+    }
+
     .nav-container {
       display: flex;
       align-items: center;
       gap: 36px;
       pointer-events: auto;
+      z-index: 2;
+      position: relative;
     }
 
     .nav-logo {
       font-family: var(--font-serif);
       font-size: 1.55rem;
-      font-weight: 500;
+      font-weight: 700;
       letter-spacing: 0.02em;
       text-decoration: none;
       color: var(--text-color);
       cursor: pointer;
       line-height: 1;
+      z-index: 2;
+      position: relative;
       transition: opacity 0.2s ease;
     }
 
@@ -121,9 +175,10 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 0;
+      padding: 0.4em 0.6em;
       position: relative;
-      transition: opacity 0.2s ease;
+      border-radius: 0.25em;
+      transition: opacity 0.2s ease, color 0.2s ease;
     }
 
     .nav-link:hover {
@@ -133,7 +188,7 @@
     .nav-link.active::after {
       content: '';
       position: absolute;
-      bottom: -4px;
+      bottom: -2px;
       left: 50%;
       transform: translateX(-50%);
       width: 4px;
@@ -143,68 +198,248 @@
     }
 
     .nav-chevron {
-      width: 10px;
-      height: 6px;
-      transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+      width: 9px;
+      height: 5px;
+      transition: transform var(--nav-close-duration) var(--nav-ease);
     }
 
-    .nav-link[data-dropdown-toggle="open"] .nav-chevron {
+    [data-dropdown-toggle="open"] .nav-chevron {
+      transition-duration: var(--nav-open-duration);
       transform: rotate(180deg);
     }
 
-    /* Index Dropdown Roster */
+    /* Authentic A24 Dropdown Container */
     .nav-dropdown {
-      position: absolute;
-      top: calc(100% + 14px);
-      left: 50%;
-      transform: translateX(-50%) translateY(-8px);
-      width: 320px;
-      background: rgba(247, 247, 246, 0.96);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 8px 0;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
+      z-index: 1;
+      box-sizing: border-box;
       opacity: 0;
       visibility: hidden;
-      transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1);
-      z-index: 100;
-      max-height: 380px;
-      overflow-y: auto;
+      pointer-events: none;
+      width: 28em;
+      margin-left: auto;
+      margin-right: auto;
+      padding-top: 4.5em;
+      padding-bottom: 0px;
+      position: fixed;
+      top: 0px;
+      left: 0px;
+      right: 0px;
+      height: 0px;
+      overflow: hidden;
+      transition: height var(--nav-close-duration) var(--nav-ease),
+                  opacity calc(var(--nav-close-duration) * .6) var(--nav-ease),
+                  visibility 0s linear calc(var(--nav-close-duration) * .6);
     }
 
-    .nav-dropdown.is-open {
+    .nav[data-nav-dropdown="open"] .nav-dropdown {
+      height: var(--nav-open-height);
       opacity: 1;
       visibility: visible;
-      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+      transition: height var(--nav-open-duration) var(--nav-ease),
+                  opacity calc(var(--nav-open-duration) * .45) var(--nav-ease),
+                  visibility 0s;
     }
 
-    .dropdown-item {
+    .nav-dropdown__overflow,
+    .nav-dropdown__overflow-inner {
+      height: 100%;
+      min-height: 0px;
+      overflow: hidden;
+    }
+
+    .nav-dropdown__content {
+      --nav-fade-top: 0;
+      --nav-fade-bottom: 0;
+      width: 100%;
+      height: 100%;
+      min-height: 0px;
+      display: block;
+      position: relative;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+      pointer-events: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      mask-size: 100% 100%;
+      mask-repeat: no-repeat;
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        black calc(var(--nav-scroll-fade) * var(--nav-fade-top)),
+        black calc(100% - var(--nav-scroll-fade) * var(--nav-fade-bottom)),
+        transparent 100%
+      );
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        black calc(var(--nav-scroll-fade) * var(--nav-fade-top)),
+        black calc(100% - var(--nav-scroll-fade) * var(--nav-fade-bottom)),
+        transparent 100%
+      );
+    }
+
+    .nav-dropdown__content::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+
+    .nav-dropdown__content-li {
+      pointer-events: auto;
+      width: 100%;
+      height: auto;
+      min-height: 0px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15em;
+      padding: 0.25em 3.2em 3em 3.2em;
+    }
+
+    .nav-dropdown__row {
+      width: 100%;
+      display: block;
+      pointer-events: auto;
+    }
+
+    .nav-dropdown__link {
+      pointer-events: auto;
+      cursor: pointer;
+      width: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0.45em 0.75em;
+      border-radius: 0.25em;
+      text-decoration: none;
+      color: var(--text-color);
+      transition: color 0.14s var(--nav-ease);
+      overflow: hidden;
+    }
+
+    .nav-dropdown__link-bg {
+      position: absolute;
+      inset: 0%;
+      border-radius: 0.25em;
+      background-color: var(--nav-active-bg);
+      opacity: 0;
+      transform: scaleY(0);
+      transform-origin: 50% 100%;
+      pointer-events: none;
+      z-index: 0;
+      will-change: transform, opacity;
+      transition: transform 0.2s var(--nav-ease), opacity 0.2s var(--nav-ease), background-color 0.2s var(--nav-ease);
+    }
+
+    .nav-dropdown__link-inner {
+      z-index: 1;
+      width: 100%;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 18px;
-      font-size: 0.88rem;
-      color: var(--text-color);
-      text-decoration: none;
-      transition: background 0.15s ease;
+      pointer-events: none;
+      min-width: 0px;
+      gap: 1em;
+    }
+
+    .nav-dropdown__link-label {
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      line-height: 1.35;
+      letter-spacing: -0.015em;
+      transition: color 0.14s var(--nav-ease);
+    }
+
+    .nav-dropdown__title {
+      font-weight: 500;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      flex: 1 1 auto;
+      min-width: 0;
+      margin: 0;
+    }
+
+    .nav-dropdown__meta {
+      font-size: 0.85rem;
+      opacity: 0.55;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
+    /* Active song state (solid black pill with white text) */
+    .nav-dropdown__link[data-film-status="active"] {
+      color: var(--nav-active-text);
+    }
+    .nav-dropdown__link[data-film-status="active"] .nav-dropdown__link-bg {
+      opacity: 1;
+      transform: scaleY(1);
+      background-color: var(--nav-active-bg);
+    }
+    .nav-dropdown__link[data-film-status="active"] .nav-dropdown__meta {
+      opacity: 0.85;
+      color: var(--nav-active-text);
+    }
+
+    /* Hover effect for inactive songs */
+    @media (hover: hover) and (pointer: fine) {
+      .nav-dropdown__link:hover:not([data-film-status="active"]) {
+        color: var(--text-color);
+      }
+      .nav-dropdown__link:hover:not([data-film-status="active"]) .nav-dropdown__link-bg {
+        opacity: 0.07;
+        transform: scaleY(1);
+        background-color: var(--text-color);
+      }
+    }
+
+    /* Minimalist Scrollbar Track & Thumb */
+    .nav-dropdown__scrollbar {
+      z-index: 4;
+      opacity: 0;
+      pointer-events: none;
       cursor: pointer;
+      user-select: none;
+      width: 3px;
+      position: absolute;
+      top: 5.2em;
+      bottom: 2em;
+      right: 1.2em;
+      background-color: rgba(0, 0, 0, 0.08);
+      border-radius: 3px;
+      transition: opacity calc(var(--nav-close-duration) * .6) var(--nav-ease),
+                  transform var(--nav-close-duration) var(--nav-ease);
+      transform: translateY(0.5em);
     }
 
-    .dropdown-item:hover {
-      background: rgba(0, 0, 0, 0.05);
+    .nav[data-nav-dropdown="open"] .nav-dropdown__scrollbar {
+      opacity: 1;
+      pointer-events: auto;
+      transition: opacity calc(var(--nav-open-duration) * .5) var(--nav-ease) .12s,
+                  transform var(--nav-open-duration) var(--nav-ease) .12s;
+      transform: translateY(0px);
     }
 
-    .dropdown-item.active {
-      font-weight: 600;
-      background: rgba(0, 0, 0, 0.07);
+    .nav-dropdown__scrollbar.is-disabled {
+      opacity: 0 !important;
+      display: none !important;
+      pointer-events: none !important;
     }
 
-    .dropdown-year {
-      font-size: 0.75rem;
-      opacity: 0.5;
-      font-family: var(--font-serif);
+    .nav-dropdown__scrollbar-progress {
+      width: 100%;
+      height: 40px;
+      background-color: var(--text-color);
+      border-radius: 3px;
+      position: absolute;
+      top: 0;
+      will-change: transform, height;
+      cursor: grab;
+    }
+    .nav-dropdown__scrollbar-progress.is-dragging {
+      cursor: grabbing;
     }
 
     /* ========================================================
@@ -401,8 +636,13 @@
 
   <div class="grain"></div>
 
-  <!-- Navigation Bar (Centered) -->
-  <header class="nav">
+  <!-- Background Tint Overlay -->
+  <div class="page-bg" id="page-backdrop"></div>
+
+  <!-- Navigation Bar (1:1 with authentic A24) -->
+  <header class="nav" id="main-nav">
+    <div class="nav-bg" aria-hidden="true"></div>
+
     <div class="nav-container">
       <a href="#" class="nav-logo" id="nav-logo-btn" aria-label="AuriX">AuriX</a>
       <ul class="nav-links">
@@ -413,19 +653,28 @@
           <a href="#" class="nav-link" id="nav-artists-btn">Artists</a>
         </li>
         <li class="nav-item">
-          <button class="nav-link" id="dropdown-toggle" data-dropdown-toggle="closed">
-            <span>Index</span>
-            <svg class="nav-chevron" viewBox="0 0 10 6" fill="none">
+          <button class="nav-link" id="dropdown-toggle" data-dropdown-toggle="closed" aria-expanded="false" aria-haspopup="true">
+            <span class="nav-link__label">Index</span>
+            <svg class="nav-chevron nav-link__dropdown-icon" viewBox="0 0 10 6" fill="none">
               <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-
-          <!-- Index Dropdown Roster -->
-          <div class="nav-dropdown" id="dropdown-roster">
-            <div class="dropdown-content" id="dropdown-items"></div>
-          </div>
         </li>
       </ul>
+    </div>
+
+    <!-- Authentic A24 Dropdown Sheet -->
+    <div class="nav-dropdown" id="dropdown-roster" aria-hidden="true">
+      <div class="nav-dropdown__overflow">
+        <div class="nav-dropdown__overflow-inner">
+          <div class="nav-dropdown__content" id="dropdown-content-scroller">
+            <div class="nav-dropdown__content-li" id="dropdown-items"></div>
+          </div>
+        </div>
+      </div>
+      <div class="nav-dropdown__scrollbar" id="dropdown-scrollbar">
+        <div class="nav-dropdown__scrollbar-progress" id="dropdown-scroll-thumb"></div>
+      </div>
     </div>
   </header>
 
@@ -499,62 +748,159 @@
     const discMeshes = [];
 
     /* ========================================================
-       INDEX DROPDOWN ROSTER
+       INDEX DROPDOWN ROSTER (Authentic A24 Interaction & Animation)
        ======================================================== */
+    const mainNav = document.getElementById('main-nav');
+    const pageBackdrop = document.getElementById('page-backdrop');
     const dropdownToggle = document.getElementById('dropdown-toggle');
     const dropdownRoster = document.getElementById('dropdown-roster');
+    const dropdownContentScroller = document.getElementById('dropdown-content-scroller');
     const dropdownItemsContainer = document.getElementById('dropdown-items');
+    const dropdownScrollThumb = document.getElementById('dropdown-scroll-thumb');
+    const dropdownScrollbar = document.getElementById('dropdown-scrollbar');
     const navSongsBtn = document.getElementById('nav-songs-btn');
     const navArtistsBtn = document.getElementById('nav-artists-btn');
     const navLogoBtn = document.getElementById('nav-logo-btn');
 
     let currentSortMode = 'songs';
+    let isDropdownOpen = false;
+
+    function toTitleCase(str) {
+      if (!str) return '';
+      return str.toLowerCase().replace(/(^|\s|\/|-|\()([a-z])/g, m => m.toUpperCase());
+    }
 
     function renderDropdownItems() {
       dropdownItemsContainer.innerHTML = '';
-      SONGS.forEach((song, idx) => {
+
+      // Build items based on sort mode
+      const items = SONGS.map((song, originalIdx) => ({ song, originalIdx }));
+      if (currentSortMode === 'artists') {
+        items.sort((a, b) => a.song.artist.localeCompare(b.song.artist));
+      }
+
+      items.forEach(({ song, originalIdx }) => {
+        const row = document.createElement('div');
+        row.className = 'nav-dropdown__row';
+
         const a = document.createElement('a');
+        a.className = 'nav-dropdown__link';
+        a.setAttribute('data-film-status', originalIdx === activeIndex ? 'active' : 'inactive');
+        a.setAttribute('data-song-idx', originalIdx);
         a.href = '#';
-        a.className = `dropdown-item ${idx === activeIndex ? 'active' : ''}`;
-        if (currentSortMode === 'artists') {
-          a.innerHTML = `
-            <span class="dropdown-title">${song.artist} — ${song.title}</span>
-            <span class="dropdown-year">${song.year}</span>
-          `;
-        } else {
-          a.innerHTML = `
-            <span class="dropdown-title">${song.title}</span>
-            <span class="dropdown-year">${song.artist}</span>
-          `;
-        }
+
+        const titleFormatted = toTitleCase(song.title);
+        const titleText = currentSortMode === 'artists' ? `${song.artist} — ${titleFormatted}` : titleFormatted;
+        const metaText = currentSortMode === 'artists' ? song.year : song.artist;
+
+        a.innerHTML = `
+          <div class="nav-dropdown__link-bg" aria-hidden="true"></div>
+          <div class="nav-dropdown__link-inner">
+            <span class="nav-dropdown__link-label nav-dropdown__title">${titleText}</span>
+            <span class="nav-dropdown__year-mask">
+              <span class="nav-dropdown__link-label nav-dropdown__meta">${metaText}</span>
+            </span>
+          </div>
+        `;
+
         a.addEventListener('click', (e) => {
           e.preventDefault();
-          selectSong(idx);
+          selectSong(originalIdx, true);
           closeDropdown();
         });
-        dropdownItemsContainer.appendChild(a);
+
+        row.appendChild(a);
+        dropdownItemsContainer.appendChild(row);
+      });
+
+      updateScrollFade();
+    }
+
+    function updateDropdownActiveState(idx) {
+      if (!dropdownItemsContainer) return;
+      const allLinks = dropdownItemsContainer.querySelectorAll('.nav-dropdown__link');
+      allLinks.forEach(link => {
+        const songIdx = parseInt(link.getAttribute('data-song-idx'), 10);
+        link.setAttribute('data-film-status', songIdx === idx ? 'active' : 'inactive');
       });
     }
 
-    renderDropdownItems();
+    function updateScrollFade() {
+      const el = dropdownContentScroller;
+      if (!el) return;
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      const topFade = maxScroll > 0 ? Math.min(1, el.scrollTop / 28) : 0;
+      const botFade = maxScroll > 0 ? Math.min(1, (maxScroll - el.scrollTop) / 28) : 0;
+      el.style.setProperty('--nav-fade-top', topFade.toFixed(4));
+      el.style.setProperty('--nav-fade-bottom', botFade.toFixed(4));
 
-    let isDropdownOpen = false;
+      if (dropdownScrollbar) {
+        if (maxScroll <= 0) {
+          dropdownScrollbar.classList.add('is-disabled');
+        } else {
+          dropdownScrollbar.classList.remove('is-disabled');
+          if (dropdownScrollThumb) {
+            const trackH = dropdownScrollbar.clientHeight;
+            const thumbH = Math.max(24, (el.clientHeight / el.scrollHeight) * trackH);
+            const thumbTop = (el.scrollTop / maxScroll) * (trackH - thumbH);
+            dropdownScrollThumb.style.height = `${thumbH}px`;
+            dropdownScrollThumb.style.transform = `translateY(${thumbTop}px)`;
+          }
+        }
+      }
+    }
+
+    if (dropdownContentScroller) {
+      dropdownContentScroller.addEventListener('scroll', updateScrollFade, { passive: true });
+    }
+
     function openDropdown() {
       isDropdownOpen = true;
+      mainNav.setAttribute('data-nav-dropdown', 'open');
       dropdownToggle.setAttribute('data-dropdown-toggle', 'open');
-      dropdownRoster.classList.add('is-open');
+      dropdownToggle.setAttribute('aria-expanded', 'true');
+      dropdownRoster.setAttribute('aria-hidden', 'false');
+      pageBackdrop.classList.add('is-active');
+
+      updateDropdownActiveState(activeIndex);
+
+      // Smoothly center the active track inside scroller
+      setTimeout(() => {
+        const activeLink = dropdownItemsContainer.querySelector('[data-film-status="active"]');
+        if (activeLink && dropdownContentScroller) {
+          const offsetTop = activeLink.offsetTop - dropdownContentScroller.clientHeight / 2 + activeLink.clientHeight / 2;
+          dropdownContentScroller.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
+        }
+        updateScrollFade();
+      }, 60);
     }
+
     function closeDropdown() {
       isDropdownOpen = false;
+      mainNav.removeAttribute('data-nav-dropdown');
       dropdownToggle.setAttribute('data-dropdown-toggle', 'closed');
-      dropdownRoster.classList.remove('is-open');
+      dropdownToggle.setAttribute('aria-expanded', 'false');
+      dropdownRoster.setAttribute('aria-hidden', 'true');
+      pageBackdrop.classList.remove('is-active');
     }
+
     dropdownToggle.addEventListener('click', (e) => {
       e.stopPropagation();
       isDropdownOpen ? closeDropdown() : openDropdown();
     });
+
+    if (pageBackdrop) {
+      pageBackdrop.addEventListener('click', closeDropdown);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isDropdownOpen) {
+        closeDropdown();
+      }
+    });
+
     document.addEventListener('click', (e) => {
-      if (!dropdownRoster.contains(e.target) && !dropdownToggle.contains(e.target)) {
+      if (isDropdownOpen && !mainNav.contains(e.target)) {
         closeDropdown();
       }
     });
@@ -585,8 +931,11 @@
       navLogoBtn.addEventListener('click', (e) => {
         e.preventDefault();
         selectSong(0);
+        closeDropdown();
       });
     }
+
+    renderDropdownItems();
 
     /* ========================================================
        REAL AUDIO PLAYER LOGIC
@@ -1428,9 +1777,7 @@
       });
 
       // Update Dropdown Active state
-      Array.from(dropdownItemsContainer.children).forEach((el, i) => {
-        el.classList.toggle('active', i === idx);
-      });
+      updateDropdownActiveState(idx);
 
       // Smooth glide carousel
       gsap.to({ val: carouselOffset }, {
