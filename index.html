@@ -843,21 +843,147 @@
     renderer.toneMappingExposure = 1.25;
     container.appendChild(renderer.domElement);
 
-    // Studio Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
+    // Value noise helper for micro-textures
+    function valueNoise(x, y) {
+      const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+      return v - Math.floor(v);
+    }
+
+    // Procedural CD Surface Maps (Micro-grooves, ink grain, gloss variations)
+    function createCDMaps() {
+      const size = 512;
+      const center = size / 2;
+
+      // 1. Front Normal Map (optical micro-grooves & printing texture)
+      const fNormCanvas = document.createElement('canvas');
+      fNormCanvas.width = size;
+      fNormCanvas.height = size;
+      const fNormCtx = fNormCanvas.getContext('2d');
+      const fNormImgData = fNormCtx.createImageData(size, size);
+      const fNormData = fNormImgData.data;
+      const heightMap = new Float32Array(size * size);
+
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const dx = x - center;
+          const dy = y - center;
+          const r = Math.sqrt(dx * dx + dy * dy) + 0.0001;
+          const optical = Math.sin(r * 0.6) * 0.025;
+          const ink = (valueNoise(x * 0.4, y * 0.4) - 0.5) * 0.175;
+          heightMap[y * size + x] = optical + ink;
+        }
+      }
+
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const left = heightMap[y * size + Math.max(0, x - 1)];
+          const right = heightMap[y * size + Math.min(size - 1, x + 1)];
+          const up = heightMap[Math.max(0, y - 1) * size + x];
+          const down = heightMap[Math.min(size - 1, y + 1) * size + x];
+          let nx = left - right, ny = up - down, nz = 1;
+          const inv = 1 / Math.sqrt(nx * nx + ny * ny + nz * nz);
+          const idx = (y * size + x) * 4;
+          fNormData[idx] = (nx * inv * 0.5 + 0.5) * 255;
+          fNormData[idx + 1] = (ny * inv * 0.5 + 0.5) * 255;
+          fNormData[idx + 2] = (nz * inv * 0.5 + 0.5) * 255;
+          fNormData[idx + 3] = 255;
+        }
+      }
+      fNormCtx.putImageData(fNormImgData, 0, 0);
+      const frontNormalMap = new THREE.CanvasTexture(fNormCanvas);
+
+      // 2. Front Roughness Map (Radial variation & sheen contrast)
+      const fRoughCanvas = document.createElement('canvas');
+      fRoughCanvas.width = size;
+      fRoughCanvas.height = size;
+      const fRoughCtx = fRoughCanvas.getContext('2d');
+      const fRoughImgData = fRoughCtx.createImageData(size, size);
+      const fRoughData = fRoughImgData.data;
+
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const dx = x - center;
+          const dy = y - center;
+          const rNorm = Math.sqrt(dx * dx + dy * dy) / (size * 0.5);
+          let roughness = 0.42;
+          roughness += (valueNoise(x * 2.3, y * 2.3) - 0.5) * 0.2;
+          roughness -= (Math.sin(rNorm * 14) * 0.5 + 0.5) * 0.25;
+          roughness = Math.max(0.04, Math.min(1.0, roughness));
+          const val = roughness * 255;
+          const idx = (y * size + x) * 4;
+          fRoughData[idx] = val;
+          fRoughData[idx + 1] = val;
+          fRoughData[idx + 2] = val;
+          fRoughData[idx + 3] = 255;
+        }
+      }
+      fRoughCtx.putImageData(fRoughImgData, 0, 0);
+      const frontRoughMap = new THREE.CanvasTexture(fRoughCanvas);
+
+      return { frontNormalMap, frontRoughMap };
+    }
+
+    const cdMaps = createCDMaps();
+
+    // Procedural Studio Reflection Environment (A24 studio softbox bars)
+    function createEnvironmentTexture(rend) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      const bg = ctx.createLinearGradient(0, 0, 0, 512);
+      bg.addColorStop(0, '#25282f');
+      bg.addColorStop(0.5, '#0e0f13');
+      bg.addColorStop(1, '#020203');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 1024, 512);
+
+      const r = 0.07;
+      [[0.14, r, 1.0], [0.4, r * 0.7, 0.6], [0.26, r * 1.1, 0.85], [0.62, r * 0.5, 0.35]].forEach(([pos, halfW, intensity]) => {
+        const topY = 512 * (pos - halfW);
+        const botY = 512 * (pos + halfW);
+        const stripGrad = ctx.createLinearGradient(0, topY, 0, botY);
+        stripGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        stripGrad.addColorStop(0.5, `rgba(255, 255, 255, ${Math.max(0.1, 0.95 * intensity)})`);
+        stripGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = stripGrad;
+        ctx.fillRect(0, topY, 1024, botY - topY);
+      });
+
+      const envTex = new THREE.CanvasTexture(canvas);
+      envTex.mapping = THREE.EquirectangularReflectionMapping;
+      const pmrem = new THREE.PMREMGenerator(rend);
+      const envMap = pmrem.fromEquirectangular(envTex);
+      envTex.dispose();
+      pmrem.dispose();
+      return envMap.texture;
+    }
+
+    // Studio Environment Reflections
+    scene.environment = createEnvironmentTexture(renderer);
+    scene.environmentIntensity = 1.0;
+
+    // Authentic A24 Studio Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff9e8, 2.8);
-    keyLight.position.set(3.5, 6, 6);
+    const keyLight = new THREE.DirectionalLight(0xfff9e8, 1.4);
+    keyLight.position.set(3.5, 5, 6);
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0x499ff5, 1.2);
-    fillLight.position.set(-4, -2, 4);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    fillLight.position.set(-4, -1, 4);
     scene.add(fillLight);
 
-    const bottomGlint = new THREE.DirectionalLight(0xffffff, 1.4);
-    bottomGlint.position.set(0, -4, 2);
-    scene.add(bottomGlint);
+    const rimLight = new THREE.DirectionalLight(0x499ff5, 0.85);
+    rimLight.position.set(0, 3, -6);
+    scene.add(rimLight);
+
+    // Specular Glint Strip Light (sweeps across CD faces during 3D hover tilt)
+    const topStripLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    topStripLight.position.set(0, 4.5, 4);
+    scene.add(topStripLight);
 
     // Standardized Disc Dimensions: Outer R = 1.0, Hub R = 0.28, Hole R = 0.14
     const DISC_OUTER_R = 1.0;
@@ -894,32 +1020,32 @@
 
     // Materials
     const backIridescentMat = new THREE.MeshPhysicalMaterial({
-      color: 0xe0e5ee,
-      metalness: 0.95,
-      roughness: 0.12,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.04,
+      color: 0x1a1e2a,
+      metalness: 1.0,
+      roughness: 0.23,
+      clearcoat: 0.34,
+      clearcoatRoughness: 0.06,
       iridescence: 1.0,
       iridescenceIOR: 1.86,
-      iridescenceThicknessRange: [150, 480],
+      iridescenceThicknessRange: [140, 900],
       side: THREE.DoubleSide
     });
 
     const hubMat = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
-      transmission: 0.92,
+      transmission: 0.72,
       transparent: true,
-      roughness: 0.1,
+      roughness: 0.08,
       ior: 1.54,
-      thickness: 0.25,
+      thickness: 0.22,
       clearcoat: 1.0,
       side: THREE.DoubleSide
     });
 
     const rimMat = new THREE.MeshPhysicalMaterial({
-      color: 0xcccccc,
-      metalness: 0.7,
-      roughness: 0.2,
+      color: 0xffffff,
+      metalness: 0.55,
+      roughness: 0.04,
       clearcoat: 1.0,
       side: THREE.DoubleSide
     });
@@ -1124,13 +1250,19 @@
         const spinGroup = new THREE.Group();
         cdMeshGroup.add(spinGroup);
 
-        // 1. Front printed label with unique cover art
+        // 1. Front printed label with unique cover art + metallic shimmer & micro-grooves
         const frontMat = new THREE.MeshPhysicalMaterial({
-          roughness: 0.22,
-          metalness: 0.10,
+          roughness: 0.30,
+          metalness: 0.38,
+          roughnessMap: cdMaps.frontRoughMap,
+          normalMap: cdMaps.frontNormalMap,
+          normalScale: new THREE.Vector2(0.35, 0.35),
           clearcoat: 0.95,
           clearcoatRoughness: 0.04,
-          reflectivity: 0.95,
+          iridescence: 0.45,
+          iridescenceIOR: 1.65,
+          iridescenceThicknessRange: [180, 520],
+          envMapIntensity: 1.15,
           side: THREE.FrontSide
         });
         const frontMesh = new THREE.Mesh(frontRingGeom, frontMat);
