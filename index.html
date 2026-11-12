@@ -667,8 +667,8 @@
         canvas.height = 1024;
         const ctx = canvas.getContext('2d');
         const center = 512;
-        const outerR = 512;
-        const hubR = Math.round(512 * 0.24); // 123px (A24 exact hub boundary)
+        const outerR = Math.round(512 * 0.974); // 499px (exact edgeBleed boundary matching 3D rim)
+        const hubR = Math.round(512 * 0.24);    // 123px (A24 exact hub boundary)
 
         let rendered = false;
         function doRender() {
@@ -684,7 +684,7 @@
         function renderCanvas() {
           ctx.clearRect(0, 0, 1024, 1024);
 
-          // 1. Circular disc clip (printed area between hubR=123 and outerR=512)
+          // 1. Circular disc clip (printed area between hubR=123 and outerR=499)
           ctx.save();
           ctx.beginPath();
           ctx.arc(center, center, outerR, 0, Math.PI * 2);
@@ -757,15 +757,6 @@
           ctx.fillStyle = "#ffffff";
           ctx.textAlign = "center";
           ctx.fillText("AuriX", center, 855);
-          ctx.restore();
-
-          // 6. Circular Rim Text
-          ctx.save();
-          ctx.font = "600 12px 'NeueMontreal', sans-serif";
-          ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
-          ctx.textAlign = "center";
-          const rimText = `AuriX MASTER CD • ${song.artist.toUpperCase()} • ${song.album.toUpperCase()} • STEREO • LOSSLESS 24-BIT`;
-          drawCurvedText(ctx, rimText, center, center, outerR - 22, -Math.PI * 0.85);
           ctx.restore();
 
           ctx.restore(); // end clip
@@ -976,25 +967,38 @@
       uvs.needsUpdate = true;
     }
 
-    const frontRingGeom = new THREE.RingGeometry(0.24, 1.0, 220, 1);
+    const frontRingGeom = new THREE.RingGeometry(0.24, 0.974, 256, 1);
     remapRingUVs(frontRingGeom);
 
-    const backRingGeom = new THREE.RingGeometry(0.24, 1.0, 220, 1);
+    const backRingGeom = new THREE.RingGeometry(0.24, 0.974, 256, 1);
     remapRingUVs(backRingGeom);
 
     // Inner Disc Geometry Layers (Frost Ring, Matrix Mirror Band, Polycarbonate Hub)
-    const frostGeom = new THREE.RingGeometry(0.14, 0.174, 120, 1);
-    const matrixGeom = new THREE.RingGeometry(0.174, 0.214, 120, 1);
-    const hubGeom = new THREE.RingGeometry(0.214, 0.24, 120, 1);
+    const frostGeom = new THREE.RingGeometry(0.14, 0.174, 180, 1);
+    const matrixGeom = new THREE.RingGeometry(0.174, 0.214, 180, 1);
+    const hubGeom = new THREE.RingGeometry(0.214, 0.24, 180, 1);
 
-    // Outer Rim Bevel
-    const rimShape = new THREE.Shape();
-    rimShape.absarc(0, 0, DISC_OUTER_R, 0, Math.PI * 2, false);
-    const rimHole = new THREE.Path();
-    rimHole.absarc(0, 0, DISC_OUTER_R - 0.012, 0, Math.PI * 2, true);
-    rimShape.holes.push(rimHole);
-    const rimGeom = new THREE.ExtrudeGeometry(rimShape, { depth: 0.015, bevelEnabled: false });
-    rimGeom.center();
+    // Ultra-Smooth Outer Rim Bevel (256-segment LatheGeometry revolving around 360 degrees)
+    function createSmoothRimGeometry() {
+      const discThickness = 0.01;
+      const halfH = discThickness / 2; // 0.005
+      const bevel = 0.0015 + 1.0 * Math.min(discThickness * 0.55, 0.018); // 0.007
+      const innerR = 1.0 - 0.026; // 0.974
+      const pts = [
+        new THREE.Vector2(innerR, halfH),
+        new THREE.Vector2(1.0 - bevel, halfH),
+        new THREE.Vector2(1.0, halfH - bevel),
+        new THREE.Vector2(1.0, -halfH + bevel),
+        new THREE.Vector2(1.0 - bevel, -halfH),
+        new THREE.Vector2(innerR, -halfH)
+      ];
+      const geom = new THREE.LatheGeometry(pts, 256);
+      geom.rotateX(Math.PI / 2);
+      geom.computeVertexNormals();
+      return geom;
+    }
+
+    const rimGeom = createSmoothRimGeometry();
 
     // Matrix Ring Texture Generator (Silver mirror with laser track markings)
     function createMatrixCanvas() {
@@ -1037,7 +1041,7 @@
       iridescenceIOR: 1.86,
       iridescenceThicknessRange: [140, 900],
       envMapIntensity: 1.5,
-      side: THREE.DoubleSide
+      side: THREE.FrontSide
     });
 
     const rimMat = new THREE.MeshPhysicalMaterial({
@@ -1302,12 +1306,12 @@
           side: THREE.FrontSide
         });
         const frontMesh = new THREE.Mesh(frontRingGeom, frontMat);
-        frontMesh.position.z = 0.006;
+        frontMesh.position.z = 0.0056;
         spinGroup.add(frontMesh);
 
         // 2. Back silver optical data surface with rainbow diffraction
         const backMesh = new THREE.Mesh(backRingGeom, backIridescentMat);
-        backMesh.position.z = -0.006;
+        backMesh.position.z = -0.0056;
         backMesh.rotation.y = Math.PI;
         spinGroup.add(backMesh);
 
