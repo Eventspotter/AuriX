@@ -667,9 +667,8 @@
         canvas.height = 1024;
         const ctx = canvas.getContext('2d');
         const center = 512;
-        const outerR = 496;
-        const hubR = 175;
-        const holeR = 76;
+        const outerR = 512;
+        const hubR = Math.round(512 * 0.24); // 123px (A24 exact hub boundary)
 
         let rendered = false;
         function doRender() {
@@ -685,20 +684,21 @@
         function renderCanvas() {
           ctx.clearRect(0, 0, 1024, 1024);
 
-          // 1. Circular disc clip
+          // 1. Circular disc clip (printed area between hubR=123 and outerR=512)
           ctx.save();
           ctx.beginPath();
           ctx.arc(center, center, outerR, 0, Math.PI * 2);
-          ctx.clip();
+          ctx.arc(center, center, hubR, 0, Math.PI * 2, true);
+          ctx.clip('evenodd');
 
           // 2. Base Disc background color
-          ctx.fillStyle = song.bgColor || "#141418";
+          ctx.fillStyle = song.bgColor || "#0c0c0e";
           ctx.fillRect(0, 0, 1024, 1024);
 
           // 3. FULL HIGH-RESOLUTION ALBUM ARTWORK
           if (img.complete && img.naturalWidth > 0) {
             ctx.save();
-            ctx.globalAlpha = 0.95;
+            ctx.globalAlpha = 0.98;
             const scale = Math.max(1024 / img.naturalWidth, 1024 / img.naturalHeight);
             const w = img.naturalWidth * scale;
             const h = img.naturalHeight * scale;
@@ -707,28 +707,28 @@
 
             // Contrast vignette
             const vignette = ctx.createRadialGradient(center, center, hubR + 10, center, center, outerR);
-            vignette.addColorStop(0, "rgba(0,0,0,0.1)");
-            vignette.addColorStop(0.7, "rgba(0,0,0,0.3)");
-            vignette.addColorStop(1, "rgba(0,0,0,0.7)");
+            vignette.addColorStop(0, "rgba(0,0,0,0.05)");
+            vignette.addColorStop(0.7, "rgba(0,0,0,0.2)");
+            vignette.addColorStop(1, "rgba(0,0,0,0.5)");
             ctx.fillStyle = vignette;
             ctx.fillRect(0, 0, 1024, 1024);
           }
 
-          // 4. Concentric Disc Grooves & Subtle Iridescent Sheen
+          // 4. Subtle Concentric Disc Grooves
           ctx.save();
-          for (let r = hubR + 8; r < outerR - 6; r += 5) {
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = `rgba(255, 255, 255, ${0.035 + Math.sin(r * 0.45) * 0.025})`;
+          for (let r = hubR + 12; r < outerR - 8; r += 6) {
+            ctx.lineWidth = 0.8;
+            ctx.strokeStyle = `rgba(255, 255, 255, ${0.02 + Math.sin(r * 0.5) * 0.015})`;
             ctx.beginPath();
             ctx.arc(center, center, r, 0, Math.PI * 2);
             ctx.stroke();
           }
           ctx.restore();
 
-          // 5. Stylized Stamp on Disc Face (Clean & Non-cluttered)
+          // 5. Stylized Stamp on Disc Face
           ctx.save();
-          ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-          ctx.shadowBlur = 12;
+          ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+          ctx.shadowBlur = 10;
 
           // If fallback (no image), render title and artist
           if (!img.complete || img.naturalWidth === 0) {
@@ -768,37 +768,11 @@
           drawCurvedText(ctx, rimText, center, center, outerR - 22, -Math.PI * 0.85);
           ctx.restore();
 
-          // 7. Frosted Center Polycarbonate Clamping Hub
-          ctx.save();
-          const hubGrad = ctx.createRadialGradient(center, center, holeR + 4, center, center, hubR);
-          hubGrad.addColorStop(0, "rgba(235, 240, 250, 0.92)");
-          hubGrad.addColorStop(0.35, "rgba(210, 220, 235, 0.72)");
-          hubGrad.addColorStop(0.85, "rgba(190, 200, 220, 0.45)");
-          hubGrad.addColorStop(1, "rgba(255, 255, 255, 0.15)");
-          ctx.fillStyle = hubGrad;
-          ctx.beginPath();
-          ctx.arc(center, center, hubR, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Inner Matrix Ring
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.65)";
-          ctx.lineWidth = 1.8;
-          ctx.beginPath();
-          ctx.arc(center, center, hubR * 0.74, 0, Math.PI * 2);
-          ctx.stroke();
-
-          // Clear Spindle Hole Cutout
-          ctx.globalCompositeOperation = "destination-out";
-          ctx.beginPath();
-          ctx.arc(center, center, holeR, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.globalCompositeOperation = "source-over";
-
-          ctx.restore();
           ctx.restore(); // end clip
 
           const texture = new THREE.CanvasTexture(canvas);
           texture.colorSpace = THREE.SRGBColorSpace;
+          texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
           texture.needsUpdate = true;
           resolve(texture);
         }
@@ -840,7 +814,8 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.86;
     container.appendChild(renderer.domElement);
 
     // Value noise helper for micro-textures
@@ -964,50 +939,53 @@
     scene.environment = createEnvironmentTexture(renderer);
     scene.environmentIntensity = 1.0;
 
-    // Authentic A24 Studio Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+    // Authentic A24 Studio Lighting Rig
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff9e8, 1.4);
-    keyLight.position.set(3.5, 5, 6);
+    const keyLight = new THREE.DirectionalLight(0xfff9e8, 0.75);
+    keyLight.position.set(3.5, -8, 6);
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    fillLight.position.set(-4, -1, 4);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    fillLight.position.set(-5, -2, 4);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0x499ff5, 0.85);
+    const rimLight = new THREE.DirectionalLight(0x499ff5, 0.75);
     rimLight.position.set(0, 3, -6);
     scene.add(rimLight);
 
     // Specular Glint Strip Light (sweeps across CD faces during 3D hover tilt)
-    const topStripLight = new THREE.DirectionalLight(0xffffff, 1.8);
-    topStripLight.position.set(0, 4.5, 4);
+    const topStripLight = new THREE.DirectionalLight(0xffffff, 1.9);
+    topStripLight.position.set(0, 3.2, 3);
     scene.add(topStripLight);
 
-    // Standardized Disc Dimensions: Outer R = 1.0, Hub R = 0.28, Hole R = 0.14
+    // Exact A24 Disc Dimensions: Outer R = 1.0, Hub R = 0.24, Hole R = 0.14
     const DISC_OUTER_R = 1.0;
-    const DISC_HUB_R = 0.28;
+    const DISC_HUB_R = 0.24;
     const DISC_HOLE_R = 0.14;
 
     function remapRingUVs(geom) {
       const pos = geom.attributes.position;
       const uvs = geom.attributes.uv;
       for (let i = 0; i < pos.count; i++) {
-        const u = (pos.getX(i) / DISC_OUTER_R) * 0.5 + 0.5;
-        const v = (pos.getY(i) / DISC_OUTER_R) * 0.5 + 0.5;
+        const u = pos.getX(i) * 0.5 + 0.5;
+        const v = pos.getY(i) * 0.5 + 0.5;
         uvs.setXY(i, u, v);
       }
       uvs.needsUpdate = true;
     }
 
-    const frontRingGeom = new THREE.RingGeometry(DISC_HOLE_R, DISC_OUTER_R, 180, 1);
+    const frontRingGeom = new THREE.RingGeometry(0.24, 1.0, 220, 1);
     remapRingUVs(frontRingGeom);
 
-    const backRingGeom = new THREE.RingGeometry(DISC_HOLE_R, DISC_OUTER_R, 180, 1);
+    const backRingGeom = new THREE.RingGeometry(0.24, 1.0, 220, 1);
     remapRingUVs(backRingGeom);
 
-    const hubGeom = new THREE.RingGeometry(DISC_HOLE_R, DISC_HUB_R, 120, 1);
+    // Inner Disc Geometry Layers (Frost Ring, Matrix Mirror Band, Polycarbonate Hub)
+    const frostGeom = new THREE.RingGeometry(0.14, 0.174, 120, 1);
+    const matrixGeom = new THREE.RingGeometry(0.174, 0.214, 120, 1);
+    const hubGeom = new THREE.RingGeometry(0.214, 0.24, 120, 1);
 
     // Outer Rim Bevel
     const rimShape = new THREE.Shape();
@@ -1015,30 +993,50 @@
     const rimHole = new THREE.Path();
     rimHole.absarc(0, 0, DISC_OUTER_R - 0.012, 0, Math.PI * 2, true);
     rimShape.holes.push(rimHole);
-    const rimGeom = new THREE.ExtrudeGeometry(rimShape, { depth: 0.02, bevelEnabled: false });
+    const rimGeom = new THREE.ExtrudeGeometry(rimShape, { depth: 0.015, bevelEnabled: false });
     rimGeom.center();
 
-    // Materials
+    // Matrix Ring Texture Generator (Silver mirror with laser track markings)
+    function createMatrixCanvas() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      const grad = ctx.createRadialGradient(256, 256, 40.96, 256, 256, 256);
+      grad.addColorStop(0, '#d9dde4');
+      grad.addColorStop(0.42, '#f0f2f5');
+      grad.addColorStop(0.72, '#cfd4dc');
+      grad.addColorStop(1, '#b8bec8');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 512, 512);
+      ctx.lineWidth = 1;
+      [0.255, 0.285, 0.315, 0.345].forEach((e, n) => {
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.14 - n * 0.018})`;
+        ctx.beginPath();
+        ctx.arc(256, 256, 512 * e, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    const matrixTexture = createMatrixCanvas();
+
+    // Authentic A24 Materials
     const backIridescentMat = new THREE.MeshPhysicalMaterial({
       color: 0x1a1e2a,
       metalness: 1.0,
       roughness: 0.23,
+      roughnessMap: cdMaps.frontRoughMap,
+      normalMap: cdMaps.frontNormalMap,
+      normalScale: new THREE.Vector2(0.5, 0.5),
       clearcoat: 0.34,
       clearcoatRoughness: 0.06,
       iridescence: 1.0,
       iridescenceIOR: 1.86,
       iridescenceThicknessRange: [140, 900],
-      side: THREE.DoubleSide
-    });
-
-    const hubMat = new THREE.MeshPhysicalMaterial({
-      color: 0xffffff,
-      transmission: 0.72,
-      transparent: true,
-      roughness: 0.08,
-      ior: 1.54,
-      thickness: 0.22,
-      clearcoat: 1.0,
+      envMapIntensity: 1.5,
       side: THREE.DoubleSide
     });
 
@@ -1046,7 +1044,48 @@
       color: 0xffffff,
       metalness: 0.55,
       roughness: 0.04,
+      clearcoat: 0.7,
+      clearcoatRoughness: 0.05,
+      envMapIntensity: 1.8,
+      side: THREE.DoubleSide
+    });
+
+    const hubMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      roughness: 0.14,
+      metalness: 0,
+      transmission: 0.68,
+      thickness: 0.6,
+      ior: 1.5,
       clearcoat: 1.0,
+      clearcoatRoughness: 0.04,
+      envMapIntensity: 1.3,
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+
+    const matrixMat = new THREE.MeshPhysicalMaterial({
+      color: 0xdfdfeb,
+      map: matrixTexture,
+      roughness: 0.28,
+      metalness: 0.82,
+      clearcoat: 0.7,
+      clearcoatRoughness: 0.12,
+      envMapIntensity: 1.45,
+      side: THREE.DoubleSide
+    });
+
+    const frostMat = new THREE.MeshPhysicalMaterial({
+      color: 0xeeeeee,
+      roughness: 0.55,
+      metalness: 0,
+      transmission: 0.23,
+      thickness: 0.3,
+      ior: 1.5,
+      clearcoat: 0.4,
+      clearcoatRoughness: 0.3,
+      envMapIntensity: 0.9,
+      transparent: true,
       side: THREE.DoubleSide
     });
 
@@ -1250,36 +1289,39 @@
         const spinGroup = new THREE.Group();
         cdMeshGroup.add(spinGroup);
 
-        // 1. Front printed label with unique cover art + metallic shimmer & micro-grooves
+        // 1. Front printed label with unique cover art + satin metallic micro-groove sheen
         const frontMat = new THREE.MeshPhysicalMaterial({
-          roughness: 0.30,
-          metalness: 0.38,
+          roughness: 0.42,
+          metalness: 0.48,
           roughnessMap: cdMaps.frontRoughMap,
           normalMap: cdMaps.frontNormalMap,
-          normalScale: new THREE.Vector2(0.35, 0.35),
-          clearcoat: 0.95,
-          clearcoatRoughness: 0.04,
-          iridescence: 0.45,
-          iridescenceIOR: 1.65,
-          iridescenceThicknessRange: [180, 520],
-          envMapIntensity: 1.15,
+          normalScale: new THREE.Vector2(0.3, 0.3),
+          clearcoat: 0.8,
+          clearcoatRoughness: 0.02,
+          envMapIntensity: 0.85,
           side: THREE.FrontSide
         });
         const frontMesh = new THREE.Mesh(frontRingGeom, frontMat);
-        frontMesh.position.z = 0.012;
+        frontMesh.position.z = 0.006;
         spinGroup.add(frontMesh);
 
-        // 2. Back silver optical data surface
+        // 2. Back silver optical data surface with rainbow diffraction
         const backMesh = new THREE.Mesh(backRingGeom, backIridescentMat);
-        backMesh.position.z = -0.012;
+        backMesh.position.z = -0.006;
         backMesh.rotation.y = Math.PI;
         spinGroup.add(backMesh);
 
-        // 3. Center Hub
+        // 3. Center Hub System (Frosted Ring, Silver Matrix Band, Polycarbonate Hub)
+        const frostMesh = new THREE.Mesh(frostGeom, frostMat);
+        spinGroup.add(frostMesh);
+
+        const matrixMesh = new THREE.Mesh(matrixGeom, matrixMat);
+        spinGroup.add(matrixMesh);
+
         const hubMesh = new THREE.Mesh(hubGeom, hubMat);
         spinGroup.add(hubMesh);
 
-        // 4. Rim
+        // 4. Outer Polycarbonate Bevel Rim
         const rimMesh = new THREE.Mesh(rimGeom, rimMat);
         spinGroup.add(rimMesh);
 
