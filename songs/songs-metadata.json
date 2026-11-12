@@ -1,66 +1,163 @@
 [
   {
-    "file": "[SPOTIFY-DOWNLOADER.COM] Bandeya Rey Bandeya.mp3",
-    "title": "﻿Bandeya Rey Bandeya",
-    "artist": "﻿Arijit Singh/Asees Kaur",
-    "album": "﻿Simmba",
-    "year": "2018",
-    "art": "./songs/art/song_1.jpg"
+    "id": "cherry-waves",
+    "title": "CHERRY WAVES",
+    "artist": "Deftones",
+    "album": "Saturday Night Wrist",
+    "year": "2006",
+    "genre": "Alternative Metal / Shoegaze",
+    "audioSrc": "./songs/Cherry Waves - Deftones.mp3",
+    "artFile": "./songs/art/song_1.jpg",
+    "accent": "#3c3c3c",
+    "textColor": "#ffffff",
+    "bgColor": "#101010",
+    "reviews": [
+      {
+        "pub": "PITCHFORK",
+        "quote": "AN ETHEREAL MASTERPIECE OF DREAMY HEAVY TEXTURES"
+      },
+      {
+        "pub": "KERRANG!",
+        "quote": "CHINO MORENO AT HIS MOST HAUNTING AND BEAUTIFUL"
+      }
+    ]
   },
   {
-    "file": "[SPOTIFY-DOWNLOADER.COM] Be Free.mp3",
-    "title": "﻿Be Free",
-    "artist": "﻿Vidya Vox",
-    "album": "﻿Kuthu Fire",
-    "year": "2017",
-    "art": "./songs/art/song_2.jpg"
+    "id": "with-arms-wide-open",
+    "title": "WITH ARMS WIDE OPEN",
+    "artist": "Creed",
+    "album": "Human Clay",
+    "year": "1999",
+    "genre": "Post-Grunge / Hard Rock",
+    "audioSrc": "./songs/Creed - With Arms Wide Open.mp3",
+    "artFile": "./songs/art/song_2.jpg",
+    "accent": "#e7c784",
+    "textColor": "#ffffff",
+    "bgColor": "#211d13",
+    "reviews": [
+      {
+        "pub": "BILLBOARD",
+        "quote": "ONE OF THE DEFINING ROCK ANTHEMS OF AN ERA"
+      },
+      {
+        "pub": "GRAMMY AWARDS",
+        "quote": "BEST ROCK SONG WINNER WITH TIMELESS POWER"
+      }
+    ]
   },
   {
-    "file": "[SPOTIFY-DOWNLOADER.COM] Bekhayali (Arijit Singh Version).mp3",
-    "title": "﻿Bekhayali (Arijit Singh Version)",
-    "artist": "﻿Arijit Singh",
-    "album": "﻿Kabir Singh",
-    "year": "2019",
-    "art": "./songs/art/song_3.jpg"
+    "id": "passenger",
+    "title": "PASSENGER",
+    "artist": "Deftones ft. Maynard James Keenan",
+    "album": "White Pony",
+    "year": "2000",
+    "genre": "Alternative Rock / Art Metal",
+    "audioSrc": "./songs/Deftones - Passenger.mp3",
+    "artFile": "./songs/art/song_3.jpg",
+    "accent": "#7b8df9",
+    "textColor": "#ffffff",
+    "bgColor": "#121424",
+    "reviews": [
+      {
+        "pub": "ROLLING STONE",
+        "quote": "MAYNARD JAMES KEENAN AND DEFTONES IN PURE GENIUS"
+      },
+      {
+        "pub": "SPIN",
+        "quote": "WHITE PONY AT ITS PEAK OF INTENSITY AND ATMOSPHERE"
+      }
+    ]
   },
   {
-    "file": "[SPOTIFY-DOWNLOADER.COM] Bing Bing Boo!.mp3",
-    "title": "﻿Bing Bing Boo!",
-    "artist": "﻿Yashraj Mukhate/Rashmeet Kaur/Kisna",
-    "album": "﻿Bing Bing Boo!",
-    "year": "2021",
-    "art": "./songs/art/song_4.jpg"
+    "id": "romantic-dreams",
+    "title": "ROMANTIC DREAMS",
+    "artist": "Deftones",
+    "album": "Koi No Yokan",
+    "year": "2012",
+    "genre": "Alternative Metal / Dream Rock",
+    "audioSrc": "./songs/Deftones - Romantic Dreams.mp3",
+    "artFile": "./songs/art/song_4.jpg",
+    "accent": "#3c3c3c",
+    "textColor": "#ffffff",
+    "bgColor": "#101010",
+    "reviews": [
+      {
+        "pub": "NME",
+        "quote": "SPELLBINDING SONIC WALL OF MELODIC EMOTION"
+      },
+      {
+        "pub": "CONSEQUENCE",
+        "quote": "KOI NO YOKAN TRANSCENDS ROCK MUSIC BOUNDARIES"
+      }
+    ]
   },
   {
-    "file": "[SPOTIFY-DOWNLOADER.COM] Bones.mp3",
-    "title": "﻿Bones",
-    "artist": "﻿Imagine Dragons",
-    "album": "﻿Bones",
-    "year": "2022",
-    "art": "./songs/art/song_5.jpg"
+    "id": "dont-follow",
+    "title": "DON'T FOLLOW",
+    "artist": "Alice In Chains",
+    "album": "Jar Of Flies",
+    "year": "1994",
+    "genre": "Acoustic Rock / Grunge",
+    "audioSrc": "./songs/Don_t Follow - Alice In Chains.mp3",
+    "artFile": "./songs/art/song_5.jpg",
+    "accent": "#ff9c7f",
+    "textColor": "#ffffff",
+    "bgColor": "#351612",
+    "reviews": [
+      {
+        "pub": "GUITAR WORLD",
+        "quote": "SOUL-STIRRING HARMONIES AND ACOUSTIC PERFECTION"
+      },
+      {
+        "pub": "ALTERNATIVE NATION",
+        "quote": "LAYNE STALEYS VOCAL SOARS WITH VULNERABILITY"
+      }
+    ]
   },
   {
-    "file": "[SPOTIFY-DOWNLOADER.COM] Chammak Challo.mp3",
-    "title": "﻿Chammak Challo",
-    "artist": "﻿Akon/Hamsika Iyer",
-    "album": "﻿Ra-One",
-    "year": "2011",
-    "art": "./songs/art/song_6.jpg"
+    "id": "knockin-on-heavens-door",
+    "title": "KNOCKIN' ON HEAVEN'S DOOR",
+    "artist": "Guns N' Roses",
+    "album": "Use Your Illusion II",
+    "year": "1991",
+    "genre": "Hard Rock",
+    "audioSrc": "./songs/Knockin' On Heaven's Door.mp3",
+    "artFile": "./songs/art/song_6.jpg",
+    "accent": "#3c3c3c",
+    "textColor": "#ffffff",
+    "bgColor": "#101010",
+    "reviews": [
+      {
+        "pub": "CLASSIC ROCK",
+        "quote": "THE GREATEST BOB DYLAN COVER EVER RECORDED"
+      },
+      {
+        "pub": "LOUDER SOUND",
+        "quote": "AXL ROSE DELIVERS UNRIVALED VOCAL MAJESTY"
+      }
+    ]
   },
   {
-    "file": "[SPOTIFY-DOWNLOADER.COM] Chaudhary.mp3",
-    "title": "﻿Chaudhary",
-    "artist": "﻿Mame Khan",
-    "album": "﻿Folk @ Coke Studio @ MTV",
-    "year": "2014",
-    "art": "./songs/art/song_7.jpg"
-  },
-  {
-    "file": "[SPOTIFY-DOWNLOADER.COM] Count on Me.mp3",
-    "title": "﻿Count on Me",
-    "artist": "﻿Bruno Mars",
-    "album": "﻿Doo-Wops & Hooligans",
-    "year": "2010",
-    "art": "./songs/art/song_8.jpg"
+    "id": "merry-christmas-please-dont-call",
+    "title": "MERRY CHRISTMAS, PLEASE DON'T CALL",
+    "artist": "Bleachers",
+    "album": "Merry Christmas, Please Don't Call",
+    "year": "2024",
+    "genre": "Indie Pop / Holiday",
+    "audioSrc": "./songs/Merry Christmas, Please Don't Call - Bleachers.mp3",
+    "artFile": "./songs/art/song_7.jpg",
+    "accent": "#ff3c3c",
+    "textColor": "#ffffff",
+    "bgColor": "#2d1010",
+    "reviews": [
+      {
+        "pub": "STEREOGUM",
+        "quote": "A NOSTALGIC, BITTERSWEET MODERN INDIE GEM"
+      },
+      {
+        "pub": "VARIETY",
+        "quote": "JACK ANTONOFF CRAFTS HEARTACHE WITH SOULFUL WARMTH"
+      }
+    ]
   }
 ]

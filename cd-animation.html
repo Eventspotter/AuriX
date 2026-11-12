@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/CustomEase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="./songs-data.js"></script>
 
   <style>
     @font-face {
@@ -492,144 +493,7 @@
     /* ========================================================
        SONGS FROM LOCAL SONGS FOLDER
        ======================================================== */
-    const SONGS = [
-      {
-        id: "bones",
-        title: "BONES",
-        artist: "Imagine Dragons",
-        album: "Mercury – Act 1",
-        year: "2022",
-        genre: "Alternative Rock",
-        audioSrc: "./songs/bones.mp3",
-        artSrc: "./songs/art/song_5.jpg",
-        accent: "#f43f5e",
-        textColor: "#ffffff",
-        bgColor: "#141419",
-        reviews: [
-          { pub: "ROLLING STONE", quote: "“AN ADRENALINE-FUELED ANTHEMIC MASTERPIECE”" },
-          { pub: "BILLBOARD", quote: "“EXPLOSIVE ENERGY AND UNMATCHED SONIC PRECISION”" }
-        ]
-      },
-      {
-        id: "chammak-challo",
-        title: "CHAMMAK CHALLO",
-        artist: "Akon & Hamsika Iyer",
-        album: "Ra-One",
-        year: "2011",
-        genre: "Global Dance Pop",
-        audioSrc: "./songs/chammak-challo.mp3",
-        artSrc: "./songs/art/song_6.jpg",
-        accent: "#fbbf24",
-        textColor: "#fbbf24",
-        bgColor: "#1e1035",
-        reviews: [
-          { pub: "MTV GLOBAL", quote: "“AN UNSTOPPABLE CROSS-CULTURAL DANCE ANTHEM”" },
-          { pub: "BBC SOUNDS", quote: "“INFECTIOUS RHYTHM THAT CAPTIVATED THE PLANET”" }
-        ]
-      },
-      {
-        id: "bekhayali",
-        title: "BEKHAYALI",
-        artist: "Arijit Singh",
-        album: "Kabir Singh",
-        year: "2019",
-        genre: "Rock Ballad",
-        audioSrc: "./songs/bekhayali.mp3",
-        artSrc: "./songs/art/song_3.jpg",
-        accent: "#ea580c",
-        textColor: "#fdba74",
-        bgColor: "#241814",
-        reviews: [
-          { pub: "FILMFARE", quote: "“RAW, HAUNTING VOCAL BRILLIANCE AT ITS PEAK”" },
-          { pub: "THE HINDU", quote: "“A POWERFUL EMOTIONAL ROLLERCOASTER OF SOUND”" }
-        ]
-      },
-      {
-        id: "count-on-me",
-        title: "COUNT ON ME",
-        artist: "Bruno Mars",
-        album: "Doo-Wops & Hooligans",
-        year: "2010",
-        genre: "Acoustic Pop",
-        audioSrc: "./songs/count-on-me.mp3",
-        artSrc: "./songs/art/song_8.jpg",
-        accent: "#0d9488",
-        textColor: "#fef08a",
-        bgColor: "#0f2320",
-        reviews: [
-          { pub: "PITCHFORK", quote: "“HEARTFELT ACOUSTIC SIMPLICITY AND WARMTH”" },
-          { pub: "NME", quote: "“AN INSTANT TIMELESS CLASSIC FOR THE SOUL”" }
-        ]
-      },
-      {
-        id: "bandeya-rey-bandeya",
-        title: "BANDEYA REY BANDEYA",
-        artist: "Arijit Singh & Asees Kaur",
-        album: "Simmba",
-        year: "2018",
-        genre: "Sufi Pop",
-        audioSrc: "./songs/bandeya-rey-bandeya.mp3",
-        artSrc: "./songs/art/song_1.jpg",
-        accent: "#d97706",
-        textColor: "#fef3c7",
-        bgColor: "#1c1917",
-        reviews: [
-          { pub: "TIMES AUDIO", quote: "“DEEPLY SPIRITUAL, SOUL-STIRRING COMPOSITION”" },
-          { pub: "INDIE REVIEW", quote: "“VOCAL HARMONY ELEVATED TO PURE POETRY”" }
-        ]
-      },
-      {
-        id: "chaudhary",
-        title: "CHAUDHARY",
-        artist: "Mame Khan",
-        album: "Coke Studio @ MTV",
-        year: "2014",
-        genre: "Folk Fusion",
-        audioSrc: "./songs/chaudhary.mp3",
-        artSrc: "./songs/art/song_7.jpg",
-        accent: "#f59e0b",
-        textColor: "#fde68a",
-        bgColor: "#291307",
-        reviews: [
-          { pub: "COKE STUDIO", quote: "“TIMELESS DESERT FOLK WITH MODERN GROOVE”" },
-          { pub: "SONIC ARTS", quote: "“MESMERIZING VOCAL COMMAND AND ENERGY”" }
-        ]
-      },
-      {
-        id: "be-free",
-        title: "BE FREE",
-        artist: "Vidya Vox",
-        album: "Kuthu Fire",
-        year: "2017",
-        genre: "Electro-Folk",
-        audioSrc: "./songs/be-free.mp3",
-        artSrc: "./songs/art/song_2.jpg",
-        accent: "#10b981",
-        textColor: "#ecfdf5",
-        bgColor: "#09211c",
-        reviews: [
-          { pub: "VERVE", quote: "“VIBRANT, CROSS-CONTINENTAL SONIC FUSION”" },
-          { pub: "GLOBAL BEATS", quote: "“AN UPLIFTING CELEBRATION OF LIBERATION”" }
-        ]
-      },
-      {
-        id: "bing-bing-boo",
-        title: "BING BING BOO!",
-        artist: "Yashraj Mukhate & Rashmeet Kaur",
-        album: "Bing Bing Boo!",
-        year: "2021",
-        genre: "Funky Viral Pop",
-        audioSrc: "./songs/bing-bing-boo.mp3",
-        artSrc: "./songs/art/song_4.jpg",
-        accent: "#db2777",
-        textColor: "#fde047",
-        bgColor: "#200624",
-        reviews: [
-          { pub: "ROLLING STONE IN", quote: "“GENIUS HOOKS AND IRRESISTIBLE GROOVES”" },
-          { pub: "VIRAL TODAY", quote: "“A MASTERCLASS IN MODERN CATCHY PRODUCTION”" }
-        ]
-      }
-    ];
+    const SONGS = (typeof AURIX_SONGS !== "undefined" ? AURIX_SONGS : (window.AURIX_SONGS || []));
 
     /* ========================================================
        INDEX DROPDOWN LOGIC
@@ -755,8 +619,7 @@
     function generateCDTexture(song) {
       return new Promise((resolve) => {
         const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = song.artSrc;
+        img.src = song.artDataUrl || song.artFile || song.artSrc;
 
         img.onload = () => {
           renderCanvasCD(img, song);
@@ -770,6 +633,12 @@
           tex.colorSpace = THREE.SRGBColorSpace;
           resolve(tex);
         };
+        if (img.complete && img.naturalWidth > 0) {
+          renderCanvasCD(img, song);
+          const tex = new THREE.CanvasTexture(offscreenCanvas);
+          tex.colorSpace = THREE.SRGBColorSpace;
+          resolve(tex);
+        }
       });
     }
 
