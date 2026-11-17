@@ -13,6 +13,9 @@
   <!-- High-Fidelity Songs Data with Base64 Album Arts -->
   <script src="./songs-data.js"></script>
 
+  <!-- Client-side Audio ID3 Tag Parser (jsmediatags) -->
+  <script src="./js/jsmediatags.min.js"></script>
+
   <style>
     @font-face {
       font-family: 'NeueMontreal';
@@ -319,6 +322,91 @@
       overflow: hidden;
     }
 
+    .nav-dropdown__edit-btn {
+      background: none;
+      border: none;
+      color: inherit;
+      opacity: 0;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      margin-left: 8px;
+      transition: opacity 0.2s, background-color 0.2s;
+      z-index: 2;
+    }
+
+    .nav-dropdown__row:hover .nav-dropdown__edit-btn {
+      opacity: 0.6;
+    }
+
+    .nav-dropdown__edit-btn:hover {
+      opacity: 1 !important;
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    .nav-dropdown__link[data-film-status="active"] .nav-dropdown__edit-btn {
+      color: #ffffff;
+      opacity: 0.75;
+    }
+    .nav-dropdown__link[data-film-status="active"] .nav-dropdown__edit-btn:hover {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Top-left Quick Edit Button */
+    .edit-current-song-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 14px;
+      padding: 5px 12px;
+      font-size: 0.72rem;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 4px;
+      color: var(--text-color);
+      cursor: pointer;
+      pointer-events: auto;
+      opacity: 0.8;
+      transition: opacity 0.2s, background 0.2s, transform 0.15s;
+    }
+    .edit-current-song-btn:hover {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.09);
+      transform: translateY(-1px);
+    }
+
+    /* Tag reading status indicators */
+    .tag-status {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      margin-top: 8px;
+      display: none;
+    }
+    .tag-status.is-reading {
+      background: rgba(0, 0, 0, 0.05);
+      color: rgba(0, 0, 0, 0.7);
+    }
+    .tag-status.is-success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      font-weight: 500;
+    }
+    .tag-status.is-info {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+    }
+
     .nav-dropdown__link-bg {
       position: absolute;
       inset: 0%;
@@ -450,7 +538,7 @@
       position: absolute;
       top: 64px;
       left: 48px;
-      width: min(330px, 23vw);
+      width: min(560px, 42vw);
       max-width: calc(100vw - 96px);
       z-index: 30;
       pointer-events: none;
@@ -458,7 +546,7 @@
 
     .song-heading {
       font-family: var(--font-serif);
-      font-size: clamp(1.6rem, 2.3vw, 2.6rem);
+      font-size: clamp(1.8rem, 2.7vw, 3.2rem);
       font-weight: 400;
       line-height: 1.05;
       letter-spacing: -0.01em;
@@ -468,10 +556,11 @@
       overflow-wrap: normal;
       white-space: normal;
       hyphens: none;
+      max-width: 100%;
     }
 
     .metadata-table {
-      width: 100%;
+      width: min(340px, 100%);
       border-top: 1px solid var(--border-color);
     }
 
@@ -630,11 +719,418 @@
     #webgl-canvas:active {
       cursor: grabbing;
     }
+
+    /* ========================================================
+       ADD SONG MODAL STYLING (A24 Monochromatic Minimalism)
+       ======================================================== */
+    .add-song-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.3s cubic-bezier(.32, .72, 0, 1), visibility 0.3s;
+    }
+
+    .add-song-modal.is-open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .add-song-modal__overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .add-song-modal__dialog {
+      position: relative;
+      background: #ffffff;
+      color: #111111;
+      width: 90%;
+      max-width: 620px;
+      max-height: 90vh;
+      border-radius: 14px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: translateY(20px) scale(0.97);
+      transition: transform 0.35s cubic-bezier(.32, .72, 0, 1);
+      z-index: 2;
+    }
+
+    .add-song-modal.is-open .add-song-modal__dialog {
+      transform: translateY(0) scale(1);
+    }
+
+    .add-song-modal__header {
+      padding: 22px 28px 18px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .add-song-modal__title {
+      font-family: var(--font-serif);
+      font-size: 1.4rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      margin: 0;
+    }
+
+    .add-song-modal__close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #111111;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      opacity: 0.6;
+      transition: opacity 0.2s, background-color 0.2s;
+    }
+
+    .add-song-modal__close:hover {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .add-song-modal__body {
+      padding: 24px 28px;
+      overflow-y: auto;
+      max-height: calc(90vh - 140px);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(0, 0, 0, 0.65);
+      margin-bottom: 7px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 0.92rem;
+      font-family: var(--font-sans);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      border-radius: 6px;
+      background: #fafafa;
+      color: #111;
+      outline: none;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: #111111;
+      background: #ffffff;
+    }
+
+    /* Custom Dropzone / Upload box */
+    .dropzone-box {
+      border: 1.5px dashed rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 18px;
+      text-align: center;
+      background: #fdfdfd;
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .dropzone-box:hover,
+    .dropzone-box.is-dragover {
+      border-color: #111111;
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    .dropzone-box input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .dropzone-icon {
+      width: 28px;
+      height: 28px;
+      margin: 0 auto 8px;
+      opacity: 0.65;
+      display: block;
+    }
+
+    .dropzone-title {
+      font-size: 0.88rem;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .dropzone-sub {
+      font-size: 0.75rem;
+      color: rgba(0, 0, 0, 0.5);
+    }
+
+    .file-badge {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 3px 8px;
+      background: #111;
+      color: #fff;
+      border-radius: 4px;
+    }
+
+    /* Artwork preview */
+    .art-preview-wrap {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .art-preview-disc {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: #181818;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .art-preview-disc::after {
+      content: '';
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      background: #ffffff;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
+      z-index: 2;
+    }
+
+    .art-preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .art-preview-placeholder {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-align: center;
+      padding: 6px;
+      z-index: 1;
+    }
+
+    .art-upload-col {
+      flex: 1;
+    }
+
+    .btn-submit-song {
+      width: 100%;
+      padding: 13px 20px;
+      background: #111111;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font-sans);
+      font-size: 0.92rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background-color 0.2s, transform 0.15s;
+    }
+
+    .btn-submit-song:hover {
+      background: #2b2b2b;
+      transform: translateY(-1px);
+    }
+
+    .btn-submit-song:active {
+      transform: translateY(0);
+    }
+
+    .btn-submit-song:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Global Window Drag-and-Drop Overlay */
+    .global-drag-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(17, 17, 17, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.25s cubic-bezier(.32, .72, 0, 1), visibility 0.25s;
+    }
+
+    .global-drag-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .global-drag-box {
+      border: 2px dashed rgba(255, 255, 255, 0.45);
+      border-radius: 20px;
+      padding: 48px 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      max-width: 520px;
+      background: rgba(255, 255, 255, 0.04);
+      transform: scale(0.96);
+      transition: transform 0.25s cubic-bezier(.32, .72, 0, 1), border-color 0.2s;
+    }
+
+    .global-drag-overlay.is-active .global-drag-box {
+      transform: scale(1);
+    }
+
+    .global-drag-icon {
+      width: 56px;
+      height: 56px;
+      color: #ffffff;
+      margin-bottom: 20px;
+      stroke-width: 1.5;
+      animation: pulseFloat 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .global-drag-title {
+      font-family: var(--font-serif);
+      font-size: 1.85rem;
+      font-weight: 500;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+      margin-bottom: 8px;
+    }
+
+    .global-drag-subtitle {
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.5;
+    }
+
+    /* Batch import toast / status notification */
+    .batch-toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(30px);
+      background: #111111;
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 999px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 250;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s cubic-bezier(.32, .72, 0, 1), transform 0.3s cubic-bezier(.32, .72, 0, 1);
+    }
+
+    .batch-toast.is-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+
+    .batch-toast-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
 
   <div class="grain"></div>
+
+  <!-- Fullscreen Drag & Drop Zone for Audio Files -->
+  <div class="global-drag-overlay" id="global-drag-overlay" aria-hidden="true">
+    <div class="global-drag-box">
+      <svg class="global-drag-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18V5l12-2v13"></path>
+        <circle cx="6" cy="18" r="3"></circle>
+        <circle cx="18" cy="16" r="3"></circle>
+      </svg>
+      <div class="global-drag-title">Drop Audio Tracks Here</div>
+      <div class="global-drag-subtitle">Release your audio files to automatically create custom 3D CDs with embedded artwork and ID3 metadata.</div>
+    </div>
+  </div>
+
+  <!-- Batch Processing Toast -->
+  <div class="batch-toast" id="batch-toast">
+    <div class="batch-toast-spinner" id="batch-toast-spinner"></div>
+    <span id="batch-toast-text">Processing dropped audio files...</span>
+  </div>
 
   <!-- Background Tint Overlay -->
   <div class="page-bg" id="page-backdrop"></div>
@@ -658,6 +1154,15 @@
             <svg class="nav-chevron nav-link__dropdown-icon" viewBox="0 0 10 6" fill="none">
               <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" id="nav-add-song-btn" title="Add Song">
+            <svg style="width: 12px; height: 12px; margin-right: 2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span class="nav-link__label">Add Song</span>
           </button>
         </li>
       </ul>
@@ -735,6 +1240,120 @@
   <!-- Hidden HTML5 Audio Element -->
   <audio id="real-audio-player" preload="metadata"></audio>
 
+  <!-- Add Song Modal Dialog -->
+  <div class="add-song-modal" id="add-song-modal" role="dialog" aria-modal="true" aria-labelledby="modal-heading">
+    <div class="add-song-modal__overlay" id="add-song-modal-overlay"></div>
+    <div class="add-song-modal__dialog">
+      <div class="add-song-modal__header">
+        <h2 class="add-song-modal__title" id="modal-heading">Add to Disc Collection</h2>
+        <button class="add-song-modal__close" id="add-song-modal-close" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="add-song-modal__body">
+        <form id="add-song-form">
+          <!-- Audio File / URL Section -->
+          <div class="form-group" id="form-audio-section">
+            <label class="form-label">Audio Track (MP3, WAV, AAC)</label>
+            <div class="dropzone-box" id="audio-dropzone">
+              <input type="file" id="song-audio-file" accept="audio/*">
+              <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 18V5l12-2v13"></path>
+                <circle cx="6" cy="18" r="3"></circle>
+                <circle cx="18" cy="16" r="3"></circle>
+              </svg>
+              <div class="dropzone-title">Choose audio file or drag & drop</div>
+              <div class="dropzone-sub">MP3, WAV, FLAC, M4A or AAC supported</div>
+              <div id="audio-filename-display" class="file-badge" style="display: none;"></div>
+            </div>
+            <div id="tag-status-notice" class="tag-status" style="display: none;"></div>
+            <div style="margin-top: 8px;">
+              <input type="url" id="song-audio-url" class="form-input" placeholder="Or enter direct audio URL (https://...)">
+            </div>
+          </div>
+
+          <!-- Album Art Section -->
+          <div class="form-group">
+            <label class="form-label">Album Artwork (Disc Face Printing)</label>
+            <div class="art-preview-wrap">
+              <div class="art-preview-disc" title="Live CD Face Preview">
+                <img id="art-preview-img" class="art-preview-img" alt="Artwork Preview">
+                <div id="art-preview-placeholder" class="art-preview-placeholder">CD Face Preview</div>
+              </div>
+              <div class="art-upload-col">
+                <div class="dropzone-box" id="art-dropzone" style="padding: 12px;">
+                  <input type="file" id="song-art-file" accept="image/*">
+                  <div class="dropzone-title" style="font-size: 0.8rem;">Upload Album Cover</div>
+                  <div class="dropzone-sub">Square JPG / PNG recommended</div>
+                </div>
+                <div style="margin-top: 6px;">
+                  <input type="url" id="song-art-url" class="form-input" style="padding: 7px 10px; font-size: 0.82rem;" placeholder="Or image URL (https://...)">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Song Metadata -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="song-input-title">Song Title *</label>
+              <input type="text" id="song-input-title" class="form-input" placeholder="e.g. STARBOY" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="song-input-artist">Artist *</label>
+              <input type="text" id="song-input-artist" class="form-input" placeholder="e.g. The Weeknd" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="song-input-album">Album</label>
+              <input type="text" id="song-input-album" class="form-input" placeholder="e.g. Starboy">
+            </div>
+            <div class="form-group" style="max-width: 140px;">
+              <label class="form-label" for="song-input-year">Year</label>
+              <input type="text" id="song-input-year" class="form-input" placeholder="2026">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="song-input-genre">Genre / Soundscape</label>
+            <input type="text" id="song-input-genre" class="form-input" placeholder="e.g. Synth-Pop / R&B">
+          </div>
+
+          <!-- Editorial Quotes -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Review #1 (Publication & Quote)</label>
+              <input type="text" id="song-input-rev1-pub" class="form-input" style="margin-bottom: 6px;" placeholder="ROLLING STONE">
+              <input type="text" id="song-input-rev1-quote" class="form-input" placeholder="A MASTERCLASS IN MODERN PRODUCTION">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Review #2 (Publication & Quote)</label>
+              <input type="text" id="song-input-rev2-pub" class="form-input" style="margin-bottom: 6px;" placeholder="PITCHFORK">
+              <input type="text" id="song-input-rev2-quote" class="form-input" placeholder="INFECTIOUS MELODIES AND GLOSS">
+            </div>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <button type="submit" class="btn-submit-song" id="add-song-submit-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              <span id="submit-btn-text">Add Song to Disc Collection</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Modular AuriX Audio & 3D WebGL Engine -->
   <script src="./js/state.js"></script>
   <script src="./js/navigation.js"></script>
@@ -743,6 +1362,7 @@
   <script src="./js/scribble.js"></script>
   <script src="./js/carousel.js"></script>
   <script src="./js/interactions.js"></script>
+  <script src="./js/add-song.js"></script>
   <script src="./js/main.js"></script>
 </body>
 </html>

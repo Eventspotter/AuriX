@@ -63,15 +63,15 @@ function selectSong(idx, playImmediately = true, options = {}) {
         const r2Pub = document.getElementById('rev2-pub');
         const r2Quote = document.getElementById('rev2-quote');
 
-        if (titleEl) titleEl.textContent = song.title;
-        if (artistEl) artistEl.textContent = song.artist;
-        if (yearEl) yearEl.textContent = song.year;
-        if (albumEl) albumEl.textContent = song.album;
+        if (titleEl) titleEl.textContent = song.title || '';
+        if (artistEl) artistEl.textContent = song.artist || '';
+        if (yearEl) yearEl.textContent = song.year || '';
+        if (albumEl) albumEl.textContent = song.album || '';
 
-        if (r1Pub && song.reviews[0]) r1Pub.textContent = song.reviews[0].pub;
-        if (r1Quote && song.reviews[0]) r1Quote.textContent = `“${song.reviews[0].quote}”`;
-        if (r2Pub && song.reviews[1]) r2Pub.textContent = song.reviews[1].pub;
-        if (r2Quote && song.reviews[1]) r2Quote.textContent = `“${song.reviews[1].quote}”`;
+        if (r1Pub) r1Pub.textContent = (song.reviews && song.reviews[0]) ? song.reviews[0].pub : 'AURIX SELECTION';
+        if (r1Quote) r1Quote.textContent = (song.reviews && song.reviews[0]) ? `“${song.reviews[0].quote}”` : '“AN IMMERSIVE AUDIOPHILE SONIC EXPERIENCE”';
+        if (r2Pub) r2Pub.textContent = (song.reviews && song.reviews[1]) ? song.reviews[1].pub : 'MASTER TAPE';
+        if (r2Quote) r2Quote.textContent = (song.reviews && song.reviews[1]) ? `“${song.reviews[1].quote}”` : '“PRISTINE ACOUSTIC CLARITY AND DYNAMIC RANGE”';
 
         gsap.to('#song-title, #song-artist, #song-year, #song-album, #rev1-pub, #rev1-quote, #rev2-pub, #rev2-quote', {
           opacity: 1,

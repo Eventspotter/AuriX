@@ -392,25 +392,43 @@ function createCDTextureForSong(song) {
       ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
       ctx.shadowBlur = 10;
 
-      // If fallback (no image), render title and artist
+      // If fallback (no image), render title and artist positioned outside the center hole (hubR = 123px)
       if (!img.complete || img.naturalWidth === 0) {
         ctx.fillStyle = song.textColor || "#ffffff";
-        ctx.font = "bold 56px 'PPEiko', Georgia, serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
 
-        const words = song.title.split(' ');
-        if (words.length > 2) {
+        const titleText = (song.title || 'UNTITLED').toUpperCase();
+        const artistText = (song.artist || 'UNKNOWN ARTIST').toUpperCase();
+
+        // 1. Title placed above the center hub hole (between y: 160 and 320)
+        // Dynamically adjust font size based on title length
+        let titleFontSize = 46;
+        if (titleText.length > 22) titleFontSize = 32;
+        else if (titleText.length > 15) titleFontSize = 38;
+        ctx.font = `bold ${titleFontSize}px 'PPEiko', Georgia, serif`;
+
+        const words = titleText.split(' ');
+        if (words.length > 2 && titleText.length > 14) {
           const mid = Math.ceil(words.length / 2);
-          ctx.fillText(words.slice(0, mid).join(' '), center, center - 60);
-          ctx.fillText(words.slice(mid).join(' '), center, center + 45);
+          ctx.fillText(words.slice(0, mid).join(' '), center, 240);
+          ctx.fillText(words.slice(mid).join(' '), center, 295);
         } else {
-          ctx.fillText(song.title, center, center - 40);
+          ctx.fillText(titleText, center, 270);
         }
 
-        ctx.font = "600 22px 'NeueMontreal', sans-serif";
-        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-        ctx.fillText(song.artist.toUpperCase(), center, center + 120);
+        // 2. Artist placed below the center hub hole (between y: 700 and 780)
+        let artistFontSize = 22;
+        if (artistText.length > 25) artistFontSize = 18;
+        ctx.font = `600 ${artistFontSize}px 'NeueMontreal', sans-serif`;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+        ctx.fillText(artistText, center, 740);
+
+        // 3. Subtle audiophile badge at bottom rim (y: 830)
+        ctx.font = "500 13px 'NeueMontreal', sans-serif";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+        ctx.letterSpacing = "2px";
+        ctx.fillText("COMPACT DISC DIGITAL AUDIO", center, 830);
       }
       ctx.restore();
 
@@ -432,87 +450,91 @@ function createCDTextureForSong(song) {
   });
 }
 
+// Assemble a single 3D CD mesh group for a given song and index
+async function createCDMeshForSong(song, index) {
+  const cdMeshGroup = new THREE.Group();
+
+  // Separate spin group so axial spin does not interfere with 3D hover tilt
+  const spinGroup = new THREE.Group();
+  cdMeshGroup.add(spinGroup);
+
+  // 1. Front printed label with unique cover art + satin metallic micro-groove sheen
+  const frontMat = new THREE.MeshPhysicalMaterial({
+    roughness: 0.42,
+    metalness: 0.48,
+    roughnessMap: cdMaps.frontRoughMap,
+    normalMap: cdMaps.frontNormalMap,
+    normalScale: new THREE.Vector2(0.3, 0.3),
+    clearcoat: 0.8,
+    clearcoatRoughness: 0.02,
+    envMapIntensity: 0.85,
+    side: THREE.FrontSide
+  });
+  const frontMesh = new THREE.Mesh(frontRingGeom, frontMat);
+  frontMesh.position.z = 0.0056;
+  spinGroup.add(frontMesh);
+
+  // 2. Back silver optical data surface with rainbow diffraction
+  const backMesh = new THREE.Mesh(backRingGeom, backIridescentMat);
+  backMesh.position.z = -0.0056;
+  backMesh.rotation.y = Math.PI;
+  spinGroup.add(backMesh);
+
+  // 3. Center Hub System (Frosted Ring, Silver Matrix Band, Polycarbonate Hub)
+  const frostMesh = new THREE.Mesh(frostGeom, frostMat);
+  spinGroup.add(frostMesh);
+
+  const matrixMesh = new THREE.Mesh(matrixGeom, matrixMat);
+  spinGroup.add(matrixMesh);
+
+  const hubMesh = new THREE.Mesh(hubGeom, hubMat);
+  spinGroup.add(hubMesh);
+
+  // 4. Outer Polycarbonate Bevel Rim
+  const rimMesh = new THREE.Mesh(rimGeom, rimMat);
+  spinGroup.add(rimMesh);
+
+  // 5. Invisible Solid Pick Mesh covering whole disc including center hole (1:1 identical to A24)
+  const pickMesh = new THREE.Mesh(pickGeom, pickMat);
+  pickMesh.userData = { index: index };
+  cdMeshGroup.add(pickMesh);
+  pickMeshes.push(pickMesh);
+
+  cdMeshGroup.userData = {
+    index: index,
+    song: song,
+    spinGroup: spinGroup,
+    baseRotX: 0,
+    baseRotY: 0,
+    baseRotZ: 0,
+    basePosZ: 0,
+    baseScale: 1,
+    hover: 0,
+    targetHover: 0,
+    tiltX: 0,
+    tiltY: 0,
+    targetTiltX: 0,
+    targetTiltY: 0
+  };
+  galleryGroup.add(cdMeshGroup);
+  discMeshes.push(cdMeshGroup);
+
+  // Generate and apply CD texture
+  const tex = await createCDTextureForSong(song);
+  frontMat.map = tex;
+  frontMat.needsUpdate = true;
+
+  return cdMeshGroup;
+}
+
 // Assemble all 3D CDs
 async function initCDs() {
-  const texturePromises = [];
-
+  const promises = [];
   for (let i = 0; i < SONGS.length; i++) {
-    const song = SONGS[i];
-    const cdMeshGroup = new THREE.Group();
-
-    // Separate spin group so axial spin does not interfere with 3D hover tilt
-    const spinGroup = new THREE.Group();
-    cdMeshGroup.add(spinGroup);
-
-    // 1. Front printed label with unique cover art + satin metallic micro-groove sheen
-    const frontMat = new THREE.MeshPhysicalMaterial({
-      roughness: 0.42,
-      metalness: 0.48,
-      roughnessMap: cdMaps.frontRoughMap,
-      normalMap: cdMaps.frontNormalMap,
-      normalScale: new THREE.Vector2(0.3, 0.3),
-      clearcoat: 0.8,
-      clearcoatRoughness: 0.02,
-      envMapIntensity: 0.85,
-      side: THREE.FrontSide
-    });
-    const frontMesh = new THREE.Mesh(frontRingGeom, frontMat);
-    frontMesh.position.z = 0.0056;
-    spinGroup.add(frontMesh);
-
-    // 2. Back silver optical data surface with rainbow diffraction
-    const backMesh = new THREE.Mesh(backRingGeom, backIridescentMat);
-    backMesh.position.z = -0.0056;
-    backMesh.rotation.y = Math.PI;
-    spinGroup.add(backMesh);
-
-    // 3. Center Hub System (Frosted Ring, Silver Matrix Band, Polycarbonate Hub)
-    const frostMesh = new THREE.Mesh(frostGeom, frostMat);
-    spinGroup.add(frostMesh);
-
-    const matrixMesh = new THREE.Mesh(matrixGeom, matrixMat);
-    spinGroup.add(matrixMesh);
-
-    const hubMesh = new THREE.Mesh(hubGeom, hubMat);
-    spinGroup.add(hubMesh);
-
-    // 4. Outer Polycarbonate Bevel Rim
-    const rimMesh = new THREE.Mesh(rimGeom, rimMat);
-    spinGroup.add(rimMesh);
-
-    // 5. Invisible Solid Pick Mesh covering whole disc including center hole (1:1 identical to A24)
-    const pickMesh = new THREE.Mesh(pickGeom, pickMat);
-    pickMesh.userData = { index: i };
-    cdMeshGroup.add(pickMesh);
-    pickMeshes.push(pickMesh);
-
-    cdMeshGroup.userData = {
-      index: i,
-      song: song,
-      spinGroup: spinGroup,
-      baseRotX: 0,
-      baseRotY: 0,
-      baseRotZ: 0,
-      basePosZ: 0,
-      baseScale: 1,
-      hover: 0,
-      targetHover: 0,
-      tiltX: 0,
-      tiltY: 0,
-      targetTiltX: 0,
-      targetTiltY: 0
-    };
-    galleryGroup.add(cdMeshGroup);
-    discMeshes.push(cdMeshGroup);
-
-    // Load textures in parallel and apply immediately
-    texturePromises.push(
-      createCDTextureForSong(song).then((tex) => {
-        frontMat.map = tex;
-        frontMat.needsUpdate = true;
-      })
-    );
+    promises.push(createCDMeshForSong(SONGS[i], i));
   }
+
+  await Promise.all(promises);
 
   if (typeof updateDiscArc === 'function') {
     updateDiscArc();
@@ -520,5 +542,4 @@ async function initCDs() {
   if (typeof loadAudioTrack === 'function') {
     loadAudioTrack(0, false);
   }
-  await Promise.all(texturePromises);
 }
