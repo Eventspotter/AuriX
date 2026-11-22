@@ -53,14 +53,14 @@ if (playBtn) {
 
 if (audio) {
   audio.addEventListener('timeupdate', () => {
+    if (window.isLyricsMode && typeof window.updateLyricsTime === 'function') {
+      window.updateLyricsTime(audio.currentTime);
+    }
     if (!audio.duration) return;
     const progress = (audio.currentTime / audio.duration) * 100;
     if (progressFill) progressFill.style.width = `${progress}%`;
     if (timeCurrent) timeCurrent.textContent = formatTime(audio.currentTime);
     if (timeTotal) timeTotal.textContent = formatTime(audio.duration);
-    if (window.isLyricsMode && typeof window.updateLyricsTime === 'function') {
-      window.updateLyricsTime(audio.currentTime);
-    }
   });
 
   audio.addEventListener('seeked', () => {

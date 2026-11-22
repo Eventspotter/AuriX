@@ -838,10 +838,10 @@
 
     .lyrics-view {
       position: absolute;
-      top: 72px;
+      top: 64px;
       right: 48px;
-      bottom: 108px;
-      width: min(580px, 48vw);
+      bottom: 104px;
+      width: min(540px, 46vw);
       max-width: calc(100vw - 96px);
       z-index: 30;
       display: none;
@@ -849,30 +849,16 @@
       pointer-events: none;
       opacity: 0;
       overflow: hidden;
-      border-radius: 24px;
-      padding: 28px 32px 32px 32px;
-      background: rgba(255, 255, 255, 0.55);
-      backdrop-filter: blur(28px) saturate(180%);
-      -webkit-backdrop-filter: blur(28px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.65);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.07);
+      padding: 12px 16px 24px 16px;
+      background: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border: none !important;
+      box-shadow: none !important;
     }
     .lyrics-view.is-open {
       display: flex;
       pointer-events: auto;
-    }
-
-    .lyrics-ambient-glow {
-      position: absolute;
-      top: -20%;
-      right: -20%;
-      width: 140%;
-      height: 140%;
-      pointer-events: none;
-      filter: blur(80px);
-      opacity: 0.45;
-      z-index: 0;
-      transition: background 1.2s ease;
     }
 
     .lyrics-header {
@@ -884,27 +870,29 @@
       padding-bottom: 12px;
     }
     .lyrics-header-eyebrow {
+      font-family: var(--font-sans);
       font-size: 0.68rem;
       text-transform: uppercase;
-      letter-spacing: 0.2em;
-      opacity: 0.5;
+      letter-spacing: 0.16em;
+      opacity: 0.45;
       font-weight: 600;
       margin-bottom: 4px;
     }
     .lyrics-header-title {
-      font-family: var(--font-serif);
-      font-size: clamp(1.4rem, 2vw, 2.2rem);
-      font-weight: 400;
+      font-family: var(--font-sans);
+      font-size: clamp(1.4rem, 2.1vw, 2.3rem);
+      font-weight: 700;
       line-height: 1.1;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.02em;
       text-transform: uppercase;
       margin: 0 0 4px 0;
       color: #111;
     }
     .lyrics-header-artist {
-      font-size: 0.92rem;
-      opacity: 0.7;
-      font-family: inherit;
+      font-size: 0.95rem;
+      opacity: 0.6;
+      font-family: var(--font-sans);
+      font-weight: 500;
     }
 
     .lyrics-scroller-viewport {
@@ -912,8 +900,9 @@
       z-index: 2;
       flex: 1;
       overflow: hidden;
-      mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 85%, transparent 100%);
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 85%, transparent 100%);
+      pointer-events: auto;
+      mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%);
     }
 
     .lyrics-scroller {
@@ -926,44 +915,48 @@
       padding-bottom: 240px;
       display: flex;
       flex-direction: column;
-      gap: 22px;
+      gap: 24px;
+      pointer-events: auto;
     }
 
     .lyric-line {
-      font-family: var(--font-serif);
-      font-size: clamp(1.4rem, 2.05vw, 2.15rem);
-      line-height: 1.32;
-      letter-spacing: 0.005em;
+      font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Helvetica Neue", sans-serif);
+      font-size: clamp(1.45rem, 2.15vw, 2.3rem);
+      font-weight: 600;
+      line-height: 1.35;
+      letter-spacing: -0.015em;
       color: #111111;
-      opacity: 0.28;
+      opacity: 0.25;
       filter: blur(1.5px);
       transform-origin: left center;
       transform: scale(0.97);
       cursor: pointer;
       user-select: none;
-      transition: opacity 0.38s cubic-bezier(0.25, 1, 0.5, 1),
-                  filter 0.38s cubic-bezier(0.25, 1, 0.5, 1),
-                  transform 0.38s cubic-bezier(0.25, 1, 0.5, 1),
+      -webkit-user-select: none;
+      pointer-events: auto;
+      transition: opacity 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+                  filter 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+                  transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
                   color 0.2s ease;
     }
     .lyric-line:hover {
       opacity: 0.65;
-      filter: blur(0.4px);
+      filter: blur(0.3px);
     }
     .lyric-line.is-active {
       opacity: 1.0;
       filter: blur(0px);
       transform: scale(1.02);
-      font-weight: 600;
+      font-weight: 700;
       color: #000000;
-      text-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+      text-shadow: none;
     }
     .lyric-line.is-past {
-      opacity: 0.32;
-      filter: blur(1px);
+      opacity: 0.3;
+      filter: blur(0.8px);
     }
     .lyric-line.is-future {
-      opacity: 0.24;
+      opacity: 0.2;
       filter: blur(1.8px);
     }
 
@@ -978,7 +971,7 @@
       opacity: 0.4;
     }
     .lyrics-empty-title {
-      font-family: var(--font-serif);
+      font-family: var(--font-sans);
       font-size: 1.3rem;
       color: #111;
       margin-bottom: 6px;
@@ -1532,8 +1525,6 @@
 
   <!-- Apple Music / BetterLyrics Fluid Synchronized Lyrics View -->
   <aside class="lyrics-view" id="lyrics-view" aria-hidden="true" aria-label="Synchronized Song Lyrics">
-    <div class="lyrics-ambient-glow" id="lyrics-ambient-glow"></div>
-    
     <div class="lyrics-header">
       <div class="lyrics-header-eyebrow">SYNCHRONIZED VOCALS</div>
       <h2 class="lyrics-header-title" id="lyrics-header-title">CHERRY WAVES</h2>

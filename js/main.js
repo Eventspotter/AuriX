@@ -10,19 +10,27 @@ function handleResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 
   if (typeof galleryGroup !== 'undefined') {
+    const origY = (typeof window.getOrigGalleryY === 'function') ? window.getOrigGalleryY() : (window.innerWidth < 768 ? 0.08 : window.innerWidth < 1024 ? 0.06 : 0.04);
+    const origScale = (typeof window.getOrigGalleryScale === 'function') ? window.getOrigGalleryScale() : (window.innerWidth < 768 ? 0.85 : window.innerWidth < 1024 ? 0.96 : 1.08);
+
     if (window.isLyricsMode) {
       const targetGalleryX = (typeof window.getStackGalleryX === 'function') ? window.getStackGalleryX() : -1.35;
-      galleryGroup.position.set(targetGalleryX, 0.05, 0.3);
-      galleryGroup.scale.setScalar(1.0);
-    } else if (window.innerWidth < 768) {
-      galleryGroup.position.set(0, 0.08, 0);
-      galleryGroup.scale.setScalar(0.85);
-    } else if (window.innerWidth < 1024) {
-      galleryGroup.position.set(0, 0.06, 0);
-      galleryGroup.scale.setScalar(0.96);
+      galleryGroup.position.set(targetGalleryX, origY, 0);
+      galleryGroup.scale.setScalar(origScale);
+      galleryGroup.rotation.set(0, 0, 0);
     } else {
-      galleryGroup.position.set(0, 0.04, 0);
-      galleryGroup.scale.setScalar(1.08);
+      const targetRot = (typeof THREE !== 'undefined' && THREE.MathUtils) ? THREE.MathUtils.degToRad(-30) : -0.5235987755982988;
+      galleryGroup.rotation.set(targetRot, targetRot, 0);
+      if (window.innerWidth < 768) {
+        galleryGroup.position.set(0, 0.08, 0);
+        galleryGroup.scale.setScalar(0.85);
+      } else if (window.innerWidth < 1024) {
+        galleryGroup.position.set(0, 0.06, 0);
+        galleryGroup.scale.setScalar(0.96);
+      } else {
+        galleryGroup.position.set(0, 0.04, 0);
+        galleryGroup.scale.setScalar(1.08);
+      }
     }
   }
 }

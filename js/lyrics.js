@@ -76,13 +76,25 @@
     }
 
     // 2. Check pre-bundled AURIX_LYRICS database
-    if (typeof AURIX_LYRICS !== 'undefined' && AURIX_LYRICS[song.id]) {
-      const entry = AURIX_LYRICS[song.id];
-      if (entry.synced) {
-        const parsed = parseLRC(entry.synced);
-        lyricsCache[song.id] = parsed;
-        return parsed;
+    const db = (typeof AURIX_LYRICS !== 'undefined' ? AURIX_LYRICS : (window.AURIX_LYRICS || {}));
+    const key = song.id || (song.title ? song.title.toLowerCase().replace(/[^a-z0-9]/g, '-') : '');
+    
+    let entry = db[song.id] || db[key];
+    if (!entry && song.title) {
+      const normTitle = song.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+      for (const [k, v] of Object.entries(db)) {
+        const normKey = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (normKey.includes(normTitle) || normTitle.includes(normKey)) {
+          entry = v;
+          break;
+        }
       }
+    }
+
+    if (entry && entry.synced) {
+      const parsed = parseLRC(entry.synced);
+      lyricsCache[song.id] = parsed;
+      return parsed;
     }
 
     // 3. Check song object's own lyrics
@@ -131,19 +143,12 @@
     const scroller = document.getElementById('lyrics-scroller');
     const headerTitle = document.getElementById('lyrics-header-title');
     const headerArtist = document.getElementById('lyrics-header-artist');
-    const ambientGlow = document.getElementById('lyrics-ambient-glow');
 
-    if (headerTitle) headerTitle.textContent = song.title.toUpperCase();
-    if (headerArtist) headerArtist.textContent = song.artist;
-
-    // Update dynamic background ambient light blob
-    if (ambientGlow) {
-      const accent = song.accent || '#499ff5';
-      ambientGlow.style.background = `radial-gradient(circle, ${accent}66 0%, rgba(20, 20, 25, 0.4) 60%, transparent 80%)`;
-    }
+    if (headerTitle) headerTitle.textContent = (song.title || '').toUpperCase();
+    if (headerArtist) headerArtist.textContent = song.artist || '';
 
     if (!scroller) return;
-    scroller.innerHTML = '<div class="lyrics-loading">Loading synchronized lyrics...</div>';
+    scroller.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
     currentActiveLineIdx = -1;
 
     currentLyricLines = await getLyricsForSong(song);
@@ -153,7 +158,7 @@
         <div class="lyrics-empty">
           <div class="lyrics-empty-icon">♪</div>
           <div class="lyrics-empty-title">Instrumental Track</div>
-          <div class="lyrics-empty-sub">No vocal lyrics synchronized for this recording</div>
+          <div class="lyrics-empty-sub">No vocal lyrics available for this recording</div>
         </div>
       `;
       return;
@@ -167,16 +172,28 @@
       lineEl.setAttribute('data-time', line.time);
       lineEl.textContent = line.text;
 
-      // Click-to-seek directly to that vocal line
-      lineEl.addEventListener('click', () => {
+      // Click or touch to seek directly to that vocal line
+      const jumpToLyric = (e) => {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
         const audio = document.getElementById('real-audio-player');
         if (audio) {
           audio.currentTime = line.time;
+          updateLyricsTime(line.time, true);
           if (audio.paused) {
-            audio.play().catch(console.error);
+            audio.play().then(() => {
+              if (typeof setPlayState === 'function') setPlayState(true);
+            }).catch(console.error);
+          } else {
+            if (typeof setPlayState === 'function') setPlayState(true);
           }
         }
-      });
+      };
+
+      lineEl.addEventListener('click', jumpToLyric);
+      lineEl.addEventListener('touchend', jumpToLyric);
 
       scroller.appendChild(lineEl);
     });
@@ -265,9 +282,24 @@
   }
   window.getStackGalleryX = getStackGalleryX;
 
+  function getOrigGalleryY() {
+    if (window.innerWidth < 768) return 0.08;
+    if (window.innerWidth < 1024) return 0.06;
+    return 0.04;
+  }
+  window.getOrigGalleryY = getOrigGalleryY;
+
+  function getOrigGalleryScale() {
+    if (window.innerWidth < 768) return 0.85;
+    if (window.innerWidth < 1024) return 0.96;
+    return 1.08;
+  }
+  window.getOrigGalleryScale = getOrigGalleryScale;
+
   /* --------------------------------------------------------
      5. 3D DISC STACKING CONTROLLER (GSAP)
-     Smoothly morphs horizontal carousel into physical vertical stack on the left
+     Smoothly morphs horizontal carousel into a flat vertical stack on the left.
+     All discs are flat with zero skew, and only the playing disc is visible on top.
      -------------------------------------------------------- */
   function animateDiscsToStack(animate = true) {
     const gallery = window.galleryGroup || (typeof galleryGroup !== 'undefined' ? galleryGroup : null);
@@ -277,91 +309,120 @@
     const N = meshes.length;
     const activeIdx = getActiveIndex();
 
-    // 1. Shift galleryGroup to the left side using responsive focal center
+    // 1. Shift galleryGroup to the left side using responsive focal center with exact matching Y & Scale
     const targetGalleryX = getStackGalleryX();
+    const origY = getOrigGalleryY();
+    const origScale = getOrigGalleryScale();
+
     if (animate && typeof gsap !== 'undefined') {
+      gsap.killTweensOf(gallery.position);
+      gsap.killTweensOf(gallery.scale);
+      gsap.killTweensOf(gallery.rotation);
+
       gsap.to(gallery.position, {
         x: targetGalleryX,
-        y: 0.05,
-        z: 0.3,
+        y: origY,
+        z: 0,
+        duration: 0.85,
+        ease: "power3.out"
+      });
+      gsap.to(gallery.scale, {
+        x: origScale,
+        y: origScale,
+        z: origScale,
+        duration: 0.85,
+        ease: "power3.out"
+      });
+      gsap.to(gallery.rotation, {
+        x: 0,
+        y: 0,
+        z: 0,
         duration: 0.85,
         ease: "power3.out"
       });
     } else {
-      gallery.position.set(targetGalleryX, 0.05, 0.3);
+      gallery.position.set(targetGalleryX, origY, 0);
+      gallery.scale.setScalar(origScale);
+      gallery.rotation.set(0, 0, 0);
     }
 
-    // 2. Animate every disc into stack formation
+    // 2. Animate discs into stack formation: flat discs, NO skew, only playing disc visible on top
     meshes.forEach((mesh, i) => {
-      mesh.visible = true;
       const ud = mesh.userData;
 
-      let targetX, targetY, targetZ, targetRotZ, targetScale;
-      let dist = 0;
-
       if (i === activeIdx) {
-        // Hero Active Disc sits elevated on TOP of the stack
-        targetX = 0;
-        targetY = 0.08;
-        targetZ = 0.55;
-        targetRotZ = 0;
-        targetScale = 1.05;
+        // Active Disc sits flat on TOP of the stack, completely visible, no skew
+        mesh.visible = true;
+        const targetX = 0;
+        const targetY = 0;
+        const targetZ = 0.5;
+        const targetRotZ = 0;
+        const targetScale = 1.0;
 
         ud.baseRotX = 0;
         ud.baseRotY = 0;
         ud.baseRotZ = 0;
         ud.basePosZ = targetZ;
         ud.baseScale = targetScale;
-      } else {
-        // Layer beneath in stack order relative to activeIndex
-        dist = (i - activeIdx + N) % N;
-        const k = dist; // 1 to N-1
+        ud.targetHover = 0;
+        ud.targetTiltX = 0;
+        ud.targetTiltY = 0;
 
-        const angleSign = (k % 2 === 0 ? 1 : -1);
-        targetX = Math.sin(k * 1.9) * 0.04;
-        targetY = -0.022 * k;
-        targetZ = 0.55 - (k * 0.055);
-        targetRotZ = angleSign * (0.04 + k * 0.025); // Organic rotation angles (3° to 10°)
-        targetScale = Math.max(0.86, 1.0 - k * 0.015);
+        if (animate && typeof gsap !== 'undefined') {
+          gsap.killTweensOf(mesh.position);
+          gsap.killTweensOf(mesh.rotation);
+          gsap.killTweensOf(mesh.scale);
+
+          gsap.to(mesh.position, {
+            x: targetX,
+            y: targetY,
+            z: targetZ,
+            duration: 0.85,
+            ease: "power3.out"
+          });
+          gsap.to(mesh.rotation, {
+            x: 0,
+            y: 0,
+            z: 0,
+            duration: 0.85,
+            ease: "power3.out"
+          });
+          gsap.to(mesh.scale, {
+            x: targetScale,
+            y: targetScale,
+            z: targetScale,
+            duration: 0.85,
+            ease: "power3.out"
+          });
+        } else {
+          mesh.position.set(targetX, targetY, targetZ);
+          mesh.rotation.set(0, 0, 0);
+          mesh.scale.set(targetScale, targetScale, targetScale);
+        }
+      } else {
+        // Inactive discs are tucked flat behind active disc with ZERO skew
+        // and hidden immediately so ONLY the playing disc is visible on the top
+        mesh.visible = false;
+        const k = (i - activeIdx + N) % N;
+        const targetZ = 0.5 - (k * 0.02);
 
         ud.baseRotX = 0;
         ud.baseRotY = 0;
-        ud.baseRotZ = targetRotZ;
+        ud.baseRotZ = 0;
         ud.basePosZ = targetZ;
-        ud.baseScale = targetScale;
-      }
+        ud.baseScale = 1.0;
+        ud.targetHover = 0;
+        ud.targetTiltX = 0;
+        ud.targetTiltY = 0;
 
-      if (animate && typeof gsap !== 'undefined') {
-        gsap.killTweensOf(mesh.position);
-        gsap.killTweensOf(mesh.rotation);
-        gsap.killTweensOf(mesh.scale);
-
-        gsap.to(mesh.position, {
-          x: targetX,
-          y: targetY,
-          z: targetZ,
-          duration: 0.85,
-          ease: "power3.out",
-          delay: i === activeIdx ? 0 : 0.02 * Math.min(dist || 1, 6)
-        });
-        gsap.to(mesh.rotation, {
-          x: 0,
-          y: 0,
-          z: targetRotZ,
-          duration: 0.85,
-          ease: "power3.out"
-        });
-        gsap.to(mesh.scale, {
-          x: targetScale,
-          y: targetScale,
-          z: targetScale,
-          duration: 0.85,
-          ease: "power3.out"
-        });
-      } else {
-        mesh.position.set(targetX, targetY, targetZ);
-        mesh.rotation.set(0, 0, targetRotZ);
-        mesh.scale.set(targetScale, targetScale, targetScale);
+        if (typeof gsap !== 'undefined') {
+          gsap.killTweensOf(mesh.position);
+          gsap.killTweensOf(mesh.rotation);
+          gsap.killTweensOf(mesh.scale);
+        }
+        mesh.position.set(0, 0, targetZ);
+        mesh.rotation.set(0, 0, 0);
+        mesh.scale.set(1.0, 1.0, 1.0);
       }
     });
 
@@ -374,27 +435,60 @@
 
   /* --------------------------------------------------------
      6. RESTORE HORIZONTAL CAROUSEL ARC (GSAP)
-     Smoothly morphs stack back into authentic A24 ribbon arc
+     Smoothly morphs stack back into authentic A24 ribbon arc with
+     100% exact responsive position restoration (zero drift).
      -------------------------------------------------------- */
   function animateDiscsToCarousel(animate = true) {
     const gallery = window.galleryGroup || (typeof galleryGroup !== 'undefined' ? galleryGroup : null);
     const meshes = window.discMeshes || (typeof discMeshes !== 'undefined' ? discMeshes : []);
     if (!gallery || !meshes.length) return;
 
+    const origY = getOrigGalleryY();
+    const origScale = getOrigGalleryScale();
+    const targetRot = (typeof THREE !== 'undefined' && THREE.MathUtils) 
+      ? THREE.MathUtils.degToRad(-30) 
+      : -0.5235987755982988;
+
     if (animate && typeof gsap !== 'undefined') {
+      gsap.killTweensOf(gallery.position);
+      gsap.killTweensOf(gallery.scale);
+      gsap.killTweensOf(gallery.rotation);
+
       gsap.to(gallery.position, {
         x: 0,
-        y: 0,
+        y: origY,
+        z: 0,
+        duration: 0.8,
+        ease: "power3.out"
+      });
+      gsap.to(gallery.scale, {
+        x: origScale,
+        y: origScale,
+        z: origScale,
+        duration: 0.8,
+        ease: "power3.out"
+      });
+      gsap.to(gallery.rotation, {
+        x: targetRot,
+        y: targetRot,
         z: 0,
         duration: 0.8,
         ease: "power3.out"
       });
     } else {
-      gallery.position.set(0, 0, 0);
+      gallery.position.set(0, origY, 0);
+      gallery.scale.setScalar(origScale);
+      gallery.rotation.set(targetRot, targetRot, 0);
     }
 
+    const curOffset = getCarouselOffset();
+    let completedCount = 0;
+
     meshes.forEach((mesh, i) => {
-      const m = i - getCarouselOffset();
+      // Make mesh visible so transition out is visible
+      mesh.visible = true;
+
+      const m = i - curOffset;
       const absDelta = Math.abs(m);
 
       const theta = m * 0.35;
@@ -403,11 +497,18 @@
       const z = -Math.cos(theta) * 2.4 + 2.4;
       const s = Math.max(0.8, 1.0 - absDelta * 0.2);
 
-      mesh.userData.baseRotX = 0;
-      mesh.userData.baseRotY = -theta;
-      mesh.userData.baseRotZ = 0;
-      mesh.userData.basePosZ = z;
-      mesh.userData.baseScale = s;
+      const ud = mesh.userData;
+      ud.baseRotX = 0;
+      ud.baseRotY = -theta;
+      ud.baseRotZ = 0;
+      ud.basePosZ = z;
+      ud.baseScale = s;
+      ud.hover = 0;
+      ud.targetHover = 0;
+      ud.tiltX = 0;
+      ud.tiltY = 0;
+      ud.targetTiltX = 0;
+      ud.targetTiltY = 0;
 
       if (animate && typeof gsap !== 'undefined') {
         gsap.killTweensOf(mesh.position);
@@ -433,15 +534,27 @@
           y: s,
           z: s,
           duration: 0.8,
-          ease: "power3.out"
+          ease: "power3.out",
+          onComplete: () => {
+            completedCount++;
+            if (completedCount === meshes.length) {
+              if (typeof updateDiscArc === 'function' && !window.isLyricsMode) {
+                updateDiscArc();
+              }
+            }
+          }
         });
       } else {
         mesh.position.set(x, y, z);
         mesh.rotation.set(0, -theta, 0);
         mesh.scale.set(s, s, s);
+        mesh.visible = absDelta < 4.0;
       }
-      mesh.visible = absDelta < 4.0;
     });
+
+    if (!animate && typeof updateDiscArc === 'function' && !window.isLyricsMode) {
+      updateDiscArc();
+    }
 
     if (typeof snapScribbleToTarget === 'function' && meshes[getActiveIndex()]) {
       snapScribbleToTarget(meshes[getActiveIndex()], false);
