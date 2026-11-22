@@ -143,7 +143,9 @@
     const scroller = document.getElementById('lyrics-scroller');
     const headerTitle = document.getElementById('lyrics-header-title');
     const headerArtist = document.getElementById('lyrics-header-artist');
+    const headerAlbum = document.getElementById('lyrics-header-album') || document.querySelector('.lyrics-header-eyebrow');
 
+    if (headerAlbum) headerAlbum.textContent = (song.album || '').toUpperCase();
     if (headerTitle) headerTitle.textContent = (song.title || '').toUpperCase();
     if (headerArtist) headerArtist.textContent = song.artist || '';
 
@@ -278,7 +280,13 @@
   function getStackGalleryX() {
     const aspect = (window.innerWidth && window.innerHeight) ? (window.innerWidth / window.innerHeight) : 1.77;
     const halfWidth = 1.601 * aspect;
-    return -(halfWidth * 0.53);
+    if (window.innerWidth < 768) {
+      return -(halfWidth * 0.32);
+    }
+    if (window.innerWidth < 1024) {
+      return -(halfWidth * 0.35);
+    }
+    return -(halfWidth * 0.38);
   }
   window.getStackGalleryX = getStackGalleryX;
 
