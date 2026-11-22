@@ -58,6 +58,15 @@ if (audio) {
     if (progressFill) progressFill.style.width = `${progress}%`;
     if (timeCurrent) timeCurrent.textContent = formatTime(audio.currentTime);
     if (timeTotal) timeTotal.textContent = formatTime(audio.duration);
+    if (window.isLyricsMode && typeof window.updateLyricsTime === 'function') {
+      window.updateLyricsTime(audio.currentTime);
+    }
+  });
+
+  audio.addEventListener('seeked', () => {
+    if (window.isLyricsMode && typeof window.updateLyricsTime === 'function') {
+      window.updateLyricsTime(audio.currentTime, true);
+    }
   });
 
   audio.addEventListener('ended', () => {

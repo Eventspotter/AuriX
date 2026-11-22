@@ -766,6 +766,244 @@
     }
 
     /* ========================================================
+       APPLE MUSIC & BETTERLYRICS FLUID KINETIC LYRICS VIEW
+       ======================================================== */
+    .lyrics-dock {
+      position: absolute;
+      bottom: 40px;
+      right: 48px;
+      z-index: 35;
+      display: flex;
+      align-items: center;
+      pointer-events: auto;
+    }
+
+    .lyrics-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 40px;
+      padding: 10px 18px 10px 14px;
+      font-size: 0.82rem;
+      font-family: inherit;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-color, #111111);
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+      transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .lyrics-toggle-btn:hover {
+      background: #111111;
+      color: #ffffff;
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+    }
+    .lyrics-toggle-btn.is-active {
+      background: #111111;
+      color: #ffffff;
+      border-color: #111111;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+    }
+    .lyrics-toggle-btn .lyrics-icon {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lyrics-toggle-btn .lyrics-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: currentColor;
+    }
+    .lyrics-toggle-btn .lyrics-badge {
+      font-size: 0.6rem;
+      letter-spacing: 0.06em;
+      padding: 1px 5px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.08);
+      color: inherit;
+      font-weight: 600;
+      margin-left: 2px;
+    }
+    .lyrics-toggle-btn.is-active .lyrics-badge {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    .lyrics-view {
+      position: absolute;
+      top: 72px;
+      right: 48px;
+      bottom: 108px;
+      width: min(580px, 48vw);
+      max-width: calc(100vw - 96px);
+      z-index: 30;
+      display: none;
+      flex-direction: column;
+      pointer-events: none;
+      opacity: 0;
+      overflow: hidden;
+      border-radius: 24px;
+      padding: 28px 32px 32px 32px;
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.07);
+    }
+    .lyrics-view.is-open {
+      display: flex;
+      pointer-events: auto;
+    }
+
+    .lyrics-ambient-glow {
+      position: absolute;
+      top: -20%;
+      right: -20%;
+      width: 140%;
+      height: 140%;
+      pointer-events: none;
+      filter: blur(80px);
+      opacity: 0.45;
+      z-index: 0;
+      transition: background 1.2s ease;
+    }
+
+    .lyrics-header {
+      position: relative;
+      z-index: 2;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      padding-bottom: 12px;
+    }
+    .lyrics-header-eyebrow {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      opacity: 0.5;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .lyrics-header-title {
+      font-family: var(--font-serif);
+      font-size: clamp(1.4rem, 2vw, 2.2rem);
+      font-weight: 400;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      margin: 0 0 4px 0;
+      color: #111;
+    }
+    .lyrics-header-artist {
+      font-size: 0.92rem;
+      opacity: 0.7;
+      font-family: inherit;
+    }
+
+    .lyrics-scroller-viewport {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      overflow: hidden;
+      mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 85%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 85%, transparent 100%);
+    }
+
+    .lyrics-scroller {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      will-change: transform;
+      padding-top: 40px;
+      padding-bottom: 240px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .lyric-line {
+      font-family: var(--font-serif);
+      font-size: clamp(1.4rem, 2.05vw, 2.15rem);
+      line-height: 1.32;
+      letter-spacing: 0.005em;
+      color: #111111;
+      opacity: 0.28;
+      filter: blur(1.5px);
+      transform-origin: left center;
+      transform: scale(0.97);
+      cursor: pointer;
+      user-select: none;
+      transition: opacity 0.38s cubic-bezier(0.25, 1, 0.5, 1),
+                  filter 0.38s cubic-bezier(0.25, 1, 0.5, 1),
+                  transform 0.38s cubic-bezier(0.25, 1, 0.5, 1),
+                  color 0.2s ease;
+    }
+    .lyric-line:hover {
+      opacity: 0.65;
+      filter: blur(0.4px);
+    }
+    .lyric-line.is-active {
+      opacity: 1.0;
+      filter: blur(0px);
+      transform: scale(1.02);
+      font-weight: 600;
+      color: #000000;
+      text-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+    }
+    .lyric-line.is-past {
+      opacity: 0.32;
+      filter: blur(1px);
+    }
+    .lyric-line.is-future {
+      opacity: 0.24;
+      filter: blur(1.8px);
+    }
+
+    .lyrics-loading, .lyrics-empty {
+      padding: 60px 0;
+      text-align: center;
+      color: rgba(0, 0, 0, 0.5);
+    }
+    .lyrics-empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      opacity: 0.4;
+    }
+    .lyrics-empty-title {
+      font-family: var(--font-serif);
+      font-size: 1.3rem;
+      color: #111;
+      margin-bottom: 6px;
+    }
+    .lyrics-empty-sub {
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+
+    @media (max-width: 768px) {
+      .lyrics-view {
+        right: 20px;
+        left: 20px;
+        width: auto;
+        top: 80px;
+        bottom: 110px;
+        padding: 20px;
+      }
+      .lyrics-dock {
+        right: 20px;
+        bottom: 24px;
+      }
+    }
+
+    /* ========================================================
        ADD SONG MODAL STYLING (A24 Monochromatic Minimalism)
        ======================================================== */
     .add-song-modal {
@@ -1279,6 +1517,36 @@
     </div>
   </div>
 
+  <!-- Floating Lyrics Button (Lower-Right Corner) -->
+  <div class="lyrics-dock">
+    <button class="lyrics-toggle-btn" id="lyrics-toggle-btn" title="Toggle Synchronized Lyrics (L)" aria-label="Toggle Lyrics">
+      <span class="lyrics-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+        </svg>
+      </span>
+      <span>Lyrics</span>
+      <span class="lyrics-badge">L</span>
+    </button>
+  </div>
+
+  <!-- Apple Music / BetterLyrics Fluid Synchronized Lyrics View -->
+  <aside class="lyrics-view" id="lyrics-view" aria-hidden="true" aria-label="Synchronized Song Lyrics">
+    <div class="lyrics-ambient-glow" id="lyrics-ambient-glow"></div>
+    
+    <div class="lyrics-header">
+      <div class="lyrics-header-eyebrow">SYNCHRONIZED VOCALS</div>
+      <h2 class="lyrics-header-title" id="lyrics-header-title">CHERRY WAVES</h2>
+      <div class="lyrics-header-artist" id="lyrics-header-artist">Deftones</div>
+    </div>
+
+    <div class="lyrics-scroller-viewport">
+      <div class="lyrics-scroller" id="lyrics-scroller">
+        <!-- Rendered dynamically by js/lyrics.js -->
+      </div>
+    </div>
+  </aside>
+
   <!-- Three.js 3D Viewport -->
   <div id="webgl-canvas"></div>
 
@@ -1401,10 +1669,12 @@
 
   <!-- Modular AuriX Audio & 3D WebGL Engine -->
   <script src="./js/state.js"></script>
+  <script src="./js/lyrics-data.js"></script>
   <script src="./js/navigation.js"></script>
   <script src="./js/audio-player.js"></script>
   <script src="./js/cd-scene.js"></script>
   <script src="./js/scribble.js"></script>
+  <script src="./js/lyrics.js"></script>
   <script src="./js/carousel.js"></script>
   <script src="./js/interactions.js"></script>
   <script src="./js/add-song.js"></script>

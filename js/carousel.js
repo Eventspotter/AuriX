@@ -4,6 +4,7 @@
    ======================================================== */
 
 function updateDiscArc() {
+  if (window.isLyricsMode) return;
   const N = discMeshes.length;
 
   discMeshes.forEach((mesh, i) => {
@@ -42,6 +43,7 @@ function getCarouselTargetIndex() {
 function selectSong(idx, playImmediately = true, options = {}) {
   if (idx < 0 || idx >= SONGS.length) return;
   activeIndex = idx;
+  window.activeIndex = idx;
   pendingTargetIndex = idx;
   targetCarouselOffset = idx;
 
@@ -98,7 +100,13 @@ function selectSong(idx, playImmediately = true, options = {}) {
   // Authentic A24 duration: 0.51s for wheel (snapDuration 0.46 + 0.05), 0.46s for snap
   const duration = options.source === 'wheel' ? 0.51 : (options.source === 'snap' ? 0.46 : 0.55);
 
-  if (typeof gsap !== 'undefined') {
+  if (window.isLyricsMode) {
+    carouselOffset = idx;
+    carouselState.offset = idx;
+    if (typeof window.animateDiscsToStack === 'function') {
+      window.animateDiscsToStack(true);
+    }
+  } else if (typeof gsap !== 'undefined') {
     carouselTween = gsap.to(carouselState, {
       offset: idx,
       duration: duration,
@@ -125,6 +133,9 @@ function selectSong(idx, playImmediately = true, options = {}) {
   if (typeof loadAudioTrack === 'function') {
     loadAudioTrack(idx, playImmediately);
   }
+
+  // Dispatch global songchange event
+  window.dispatchEvent(new CustomEvent('aurix:songchange', { detail: { index: idx } }));
 }
 
 function snapToNearest() {

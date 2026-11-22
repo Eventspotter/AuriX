@@ -20,7 +20,17 @@ let carouselTween = null;
 let pendingTargetIndex = 0;
 const discMeshes = [];
 
+// Explicit window bindings
+if (typeof window !== 'undefined') {
+  window.SONGS = SONGS;
+  window.activeIndex = activeIndex;
+  window.discMeshes = discMeshes;
+  window.carouselState = carouselState;
+  window.carouselOffset = carouselOffset;
+}
+
 // Audio & Navigation State
 let isAudioPlaying = false;
 let isDropdownOpen = false;
 let currentSortMode = 'songs';
+

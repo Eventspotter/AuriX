@@ -314,6 +314,12 @@ galleryGroup.position.set(0, 0, 0);
 galleryGroup.scale.setScalar(1.08);
 scene.add(galleryGroup);
 
+window.galleryGroup = galleryGroup;
+window.discMeshes = discMeshes;
+window.camera = camera;
+window.scene = scene;
+window.renderer = renderer;
+
 /* ========================================================
    INDIVIDUAL CD CANVAS TEXTURE GENERATOR (1024x1024)
    ======================================================== */

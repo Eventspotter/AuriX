@@ -10,7 +10,11 @@ function handleResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 
   if (typeof galleryGroup !== 'undefined') {
-    if (window.innerWidth < 768) {
+    if (window.isLyricsMode) {
+      const targetGalleryX = (typeof window.getStackGalleryX === 'function') ? window.getStackGalleryX() : -1.35;
+      galleryGroup.position.set(targetGalleryX, 0.05, 0.3);
+      galleryGroup.scale.setScalar(1.0);
+    } else if (window.innerWidth < 768) {
       galleryGroup.position.set(0, 0.08, 0);
       galleryGroup.scale.setScalar(0.85);
     } else if (window.innerWidth < 1024) {
@@ -45,8 +49,10 @@ function animate() {
     ud.tiltX += (ud.targetTiltX - ud.tiltX) * 0.12;
     ud.tiltY += (ud.targetTiltY - ud.tiltY) * 0.12;
 
-    mesh.rotation.x = (ud.baseRotX || 0) + ud.tiltX;
-    mesh.rotation.y = (ud.baseRotY || 0) + ud.tiltY;
+    if (typeof gsap === 'undefined' || !gsap.isTweening(mesh.rotation)) {
+      mesh.rotation.x = (ud.baseRotX || 0) + ud.tiltX;
+      mesh.rotation.y = (ud.baseRotY || 0) + ud.tiltY;
+    }
   });
 
   // Animate authentic A24 hover scribble

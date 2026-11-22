@@ -35,7 +35,7 @@ function updateHoverAndRaycast(clientX = lastPointerX, clientY = lastPointerY) {
 
   // Check if mouse is hovering over floating HTML overlays
   const el = document.elementFromPoint(clientX, clientY);
-  if (el && el.closest('.nav, .audio-player-dock, .hero-info-panel, .nav-dropdown, #page-backdrop')) {
+  if (el && el.closest('.nav, .audio-player-dock, .hero-info-panel, .nav-dropdown, #page-backdrop, .lyrics-dock, .lyrics-view')) {
     discMeshes.forEach((m) => {
       m.userData.targetHover = 0;
       m.userData.targetTiltX = 0;
@@ -81,7 +81,8 @@ window.addEventListener('pointerenter', (e) => {
 });
 
 window.addEventListener('pointerdown', (e) => {
-  if (e.target.closest('.nav') || e.target.closest('.audio-player-dock') || e.target.closest('.nav-dropdown')) return;
+  if (e.target.closest('.nav') || e.target.closest('.audio-player-dock') || e.target.closest('.nav-dropdown') || e.target.closest('.lyrics-dock') || e.target.closest('.lyrics-view')) return;
+  if (window.isLyricsMode) return;
   if (carouselTween) {
     carouselTween.kill();
     carouselTween = null;
@@ -220,7 +221,7 @@ function triggerWheelStep(direction, delta, now) {
 
 window.addEventListener('wheel', (e) => {
   if (e.ctrlKey) return;
-  if (isDropdownOpen || e.target.closest('.nav-dropdown')) return;
+  if (isDropdownOpen || e.target.closest('.nav-dropdown') || e.target.closest('.lyrics-view') || e.target.closest('.lyrics-dock')) return;
 
   isPointerOverCanvas = true;
   if (e.clientX !== undefined && e.clientY !== undefined) {
@@ -301,7 +302,7 @@ window.addEventListener('keydown', (e) => {
 // Direct Disc Click
 window.addEventListener('click', (e) => {
   if (hasDragged) return;
-  if (e.target.closest('.nav') || e.target.closest('.audio-player-dock') || e.target.closest('.nav-dropdown')) return;
+  if (e.target.closest('.nav') || e.target.closest('.audio-player-dock') || e.target.closest('.nav-dropdown') || e.target.closest('.lyrics-dock') || e.target.closest('.lyrics-view')) return;
   const hit = getDiscIntersection(e.clientX, e.clientY);
   const hitIdx = hit ? hit.index : -1;
   if (hitIdx !== -1) {
