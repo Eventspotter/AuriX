@@ -211,6 +211,51 @@
       transform: rotate(180deg);
     }
 
+    /* Top-Right Add Song Action Button */
+    .nav-add-btn {
+      position: absolute;
+      right: 48px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 40px;
+      padding: 8px 16px 8px 12px;
+      font-size: 0.84rem;
+      font-family: inherit;
+      font-weight: 500;
+      color: var(--text-color, #111111);
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+      transition: all 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+      z-index: 2;
+    }
+    .nav-add-btn:hover {
+      background: #111111;
+      color: #ffffff;
+      transform: translateY(-50%) scale(1.04);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+    .nav-add-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+    @media (max-width: 860px) {
+      .nav-add-btn {
+        right: 20px;
+        padding: 8px 12px;
+      }
+      .nav-add-btn span {
+        display: none;
+      }
+    }
+
     /* Authentic A24 Dropdown Container */
     .nav-dropdown {
       z-index: 1;
@@ -1156,17 +1201,17 @@
             </svg>
           </button>
         </li>
-        <li class="nav-item">
-          <button class="nav-link" id="nav-add-song-btn" title="Add Song">
-            <svg style="width: 12px; height: 12px; margin-right: 2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            <span class="nav-link__label">Add Song</span>
-          </button>
-        </li>
       </ul>
     </div>
+
+    <!-- Top-Right Action: Add Song -->
+    <button class="nav-add-btn" id="nav-add-song-btn" title="Add Song to Collection">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      <span>Add Song</span>
+    </button>
 
     <!-- Authentic A24 Dropdown Sheet -->
     <div class="nav-dropdown" id="dropdown-roster" aria-hidden="true">
