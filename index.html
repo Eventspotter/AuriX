@@ -986,24 +986,22 @@
     /* Word-Level Synchronized Animation (Apple Music / BetterLyrics Style) */
     .lyric-word {
       display: inline-block;
-      margin-right: 0.28em;
       cursor: pointer;
       pointer-events: auto;
       color: #111111;
-      opacity: 0.28;
-      filter: blur(0.6px);
-      transform: scale(0.99);
-      transform-origin: 50% 50%;
-      --word-progress: 0%;
-      /* Butter-smooth, silky transition from the exact visual center */
-      transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1),
-                  opacity 0.2s ease-out,
-                  filter 0.2s ease-out;
+      opacity: 0.25;
+      filter: blur(1.2px);
+      transform: scale(0.98);
+      transform-origin: center center;
+      transition: opacity 0.22s cubic-bezier(0.25, 1, 0.5, 1),
+                  filter 0.22s cubic-bezier(0.25, 1, 0.5, 1),
+                  transform 0.22s cubic-bezier(0.25, 1, 0.5, 1),
+                  color 0.15s ease;
     }
     .lyric-word:hover {
-      opacity: 1.0 !important;
+      opacity: 0.95 !important;
       filter: blur(0px) !important;
-      transform: scale(1.03) !important;
+      transform: scale(1.04) !important;
       color: #000000 !important;
       text-decoration: underline;
       text-decoration-thickness: 1.5px;
@@ -1011,41 +1009,29 @@
     }
 
     /* In active line: sung words */
-    .lyric-line.is-active .lyric-word.is-sung:not(.is-current-word) {
-      opacity: 0.96 !important;
-      filter: blur(0px);
-      font-weight: 650;
-      color: #000000;
-      transform: scale(1.0);
-      background: none;
-      -webkit-text-fill-color: initial;
-    }
-
-    /* In active line: word actively being vocalized right now (BetterLyrics progressive fill & sustained glow) */
-    .lyric-line.is-active .lyric-word.is-current-word {
+    .lyric-line.is-active .lyric-word.is-sung {
+      opacity: 0.95;
       filter: blur(0px);
       font-weight: 700;
       color: #000000;
-      transform: scale(1.025);
-      background: linear-gradient(
-        90deg,
-        #000000 0%,
-        #000000 var(--word-progress, 0%),
-        rgba(0, 0, 0, 0.36) calc(var(--word-progress, 0%) + 10%),
-        rgba(0, 0, 0, 0.26) 100%
-      );
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 1px rgba(0, 0, 0, 0.15);
+      transform: scale(1.0);
+    }
+
+    /* In active line: word actively being vocalized right now */
+    .lyric-line.is-active .lyric-word.is-current-word {
+      opacity: 1.0;
+      filter: blur(0px);
+      font-weight: 800;
+      color: #000000;
+      transform: scale(1.04);
+      text-shadow: 0 0 1px rgba(0, 0, 0, 0.25);
     }
 
     /* In active line: upcoming words not yet sung */
     .lyric-line.is-active .lyric-word.is-unsung {
-      opacity: 0.28;
-      filter: blur(0.6px);
+      opacity: 0.32;
+      filter: blur(0.7px);
       transform: scale(0.99);
-      background: none;
-      -webkit-text-fill-color: initial;
     }
 
     /* Past and future lines words default to line opacity */
@@ -1757,17 +1743,17 @@
   </div>
 
   <!-- Modular AuriX Audio & 3D WebGL Engine -->
-  <script src="./js/state.js?v=6"></script>
-  <script src="./js/lyrics-data.js?v=6"></script>
-  <script src="./js/navigation.js?v=6"></script>
-  <script src="./js/audio-player.js?v=6"></script>
-  <script src="./js/cd-scene.js?v=6"></script>
-  <script src="./js/scribble.js?v=6"></script>
-  <script src="./js/lyrics.js?v=6"></script>
-  <script src="./js/reviews.js?v=6"></script>
-  <script src="./js/carousel.js?v=6"></script>
-  <script src="./js/interactions.js?v=6"></script>
-  <script src="./js/add-song.js?v=6"></script>
-  <script src="./js/main.js?v=6"></script>
+  <script src="./js/state.js?v=7"></script>
+  <script src="./js/lyrics-data.js?v=7"></script>
+  <script src="./js/navigation.js?v=7"></script>
+  <script src="./js/audio-player.js?v=7"></script>
+  <script src="./js/cd-scene.js?v=7"></script>
+  <script src="./js/scribble.js?v=7"></script>
+  <script src="./js/lyrics.js?v=7"></script>
+  <script src="./js/reviews.js?v=7"></script>
+  <script src="./js/carousel.js?v=7"></script>
+  <script src="./js/interactions.js?v=7"></script>
+  <script src="./js/add-song.js?v=7"></script>
+  <script src="./js/main.js?v=7"></script>
 </body>
 </html>

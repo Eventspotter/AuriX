@@ -75,38 +75,16 @@
         continue;
       }
 
-      // Natural human singing cadence:
-      // Words take ~0.24s base + 0.055s per letter, plus sustain for punctuation / vowel extensions
-      const wordBaseDurations = rawWords.map((w, idx) => {
-        const clean = w.replace(/[^a-zA-Z0-9]/g, '');
-        let dur = 0.24 + Math.min(clean.length, 8) * 0.055;
-        if (/[?!.~—–\-]$/.test(w) || /[aeiouy]{2,}/i.test(w)) {
-          dur += 0.22;
-        }
-        if (idx === rawWords.length - 1) {
-          if (rawWords.length === 1) {
-            dur = Math.min(3.5, Math.max(1.8, (lineDuration - 0.4) * 0.8));
-          } else {
-            dur += (/[?!.~—–\-]$/.test(w) ? 0.65 : 0.4);
-          }
-        }
-        return dur;
-      });
+      // Vocal delivery takes around 78% of line interval, with natural breathing pause before next line
+      const vocalDuration = Math.max(0.6, Math.min(lineDuration * 0.78, rawWords.length * 0.75));
 
-      const estDuration = wordBaseDurations.reduce((sum, d) => sum + d, 0);
-      let vocalDuration;
-      if (lineDuration <= estDuration + 0.3) {
-        // Fast delivery or next lyric line starts immediately
-        vocalDuration = Math.max(0.6, lineDuration - 0.15);
-      } else {
-        // There is an instrumental gap or pause; finish vocal naturally without dragging
-        vocalDuration = Math.min(estDuration, lineDuration - 0.4);
-      }
+      // Weight each word by syllable/character count so syllables get realistic singing duration
+      const weights = rawWords.map(w => Math.max(1, w.replace(/[^a-zA-Z0-9]/g, '').length));
+      const totalWeight = weights.reduce((sum, w) => sum + w, 0);
 
-      const scale = vocalDuration / estDuration;
       let currentOffset = 0;
       line.words = rawWords.map((wordText, wIdx) => {
-        const duration = Math.max(0.12, wordBaseDurations[wIdx] * scale);
+        const duration = (weights[wIdx] / totalWeight) * vocalDuration;
         const wordStart = line.time + currentOffset;
         const wordEnd = wordStart + duration;
         currentOffset += duration;
@@ -335,8 +313,8 @@
   function updateLyricsTime(currentTime, instant = false) {
     if (!isLyricsMode || !currentLyricLines || !currentLyricLines.length) return;
 
-    // Determine current active lyric line (with precise 0.02s frame calibration)
-    const playTime = currentTime + 0.02;
+    // Determine current active lyric line (with slight 0.08s anticipation)
+    const playTime = currentTime + 0.08;
     let activeIdx = -1;
 
     for (let i = 0; i < currentLyricLines.length; i++) {
@@ -364,8 +342,6 @@
             el.querySelectorAll('.lyric-word').forEach(w => {
               w.classList.remove('is-current-word', 'is-unsung');
               w.classList.add('is-sung');
-              w.style.opacity = '';
-              w.style.setProperty('--word-progress', '100%');
             });
           } else {
             el.classList.add('is-future');
@@ -373,8 +349,6 @@
             el.querySelectorAll('.lyric-word').forEach(w => {
               w.classList.remove('is-current-word', 'is-sung');
               w.classList.add('is-unsung');
-              w.style.opacity = '';
-              w.style.setProperty('--word-progress', '0%');
             });
           }
         });
@@ -409,7 +383,7 @@
   }
   window.updateLyricsTime = updateLyricsTime;
 
-  /* Real-time word illumination within the actively singing line (BetterLyrics / Apple Music) */
+  /* Real-time word illumination within the actively singing line (Apple Music / BetterLyrics style) */
   function updateActiveLineWords(currentTime) {
     if (currentActiveLineIdx < 0 || !currentLyricLines) return;
     const activeLine = currentLyricLines[currentActiveLineIdx];
@@ -423,7 +397,7 @@
     const wordEls = activeLineEl.querySelectorAll('.lyric-word');
     if (!wordEls.length) return;
 
-    const playTime = currentTime + 0.02;
+    const playTime = currentTime + 0.04;
 
     for (let k = 0; k < activeLine.words.length; k++) {
       const word = activeLine.words[k];
@@ -431,31 +405,18 @@
       if (!wordEl) continue;
 
       if (playTime >= word.time) {
+        wordEl.classList.remove('is-unsung');
+        wordEl.classList.add('is-sung');
+
         if (playTime < word.endTime) {
           // Actively singing this specific word right now!
-          wordEl.classList.add('is-current-word', 'is-sung');
-          wordEl.classList.remove('is-unsung');
-
-          const duration = Math.max(0.08, word.endTime - word.time);
-          const progress = Math.min(1.0, Math.max(0, (playTime - word.time) / duration));
-
-          // BetterLyrics: word slowly increases opacity & sweeps fill as singer sustains note
-          const wordOpacity = 0.58 + 0.42 * progress;
-          wordEl.style.opacity = wordOpacity.toFixed(3);
-          wordEl.style.setProperty('--word-progress', `${(progress * 100).toFixed(1)}%`);
+          wordEl.classList.add('is-current-word');
         } else {
-          // Finished singing this word (fully sung)
-          wordEl.classList.remove('is-current-word', 'is-unsung');
-          wordEl.classList.add('is-sung');
-          wordEl.style.opacity = '0.96';
-          wordEl.style.setProperty('--word-progress', '100%');
+          wordEl.classList.remove('is-current-word');
         }
       } else {
-        // Upcoming unsung word
-        wordEl.classList.remove('is-current-word', 'is-sung');
+        wordEl.classList.remove('is-sung', 'is-current-word');
         wordEl.classList.add('is-unsung');
-        wordEl.style.opacity = '';
-        wordEl.style.setProperty('--word-progress', '0%');
       }
     }
   }
