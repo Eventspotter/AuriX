@@ -61,7 +61,42 @@
         }
       }
     }
-    return result.sort((a, b) => a.time - b.time);
+    result.sort((a, b) => a.time - b.time);
+
+    // Compute word-level timing for every line (Apple Music / BetterLyrics style)
+    for (let i = 0; i < result.length; i++) {
+      const line = result[i];
+      const nextLine = result[i + 1];
+      const lineDuration = nextLine ? Math.max(0.8, nextLine.time - line.time) : 4.5;
+
+      const rawWords = line.text.split(/\s+/).filter(Boolean);
+      if (!rawWords.length) {
+        line.words = [];
+        continue;
+      }
+
+      // Vocal delivery takes around 78% of line interval, with natural breathing pause before next line
+      const vocalDuration = Math.max(0.6, Math.min(lineDuration * 0.78, rawWords.length * 0.75));
+
+      // Weight each word by syllable/character count so syllables get realistic singing duration
+      const weights = rawWords.map(w => Math.max(1, w.replace(/[^a-zA-Z0-9]/g, '').length));
+      const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+      let currentOffset = 0;
+      line.words = rawWords.map((wordText, wIdx) => {
+        const duration = (weights[wIdx] / totalWeight) * vocalDuration;
+        const wordStart = line.time + currentOffset;
+        const wordEnd = wordStart + duration;
+        currentOffset += duration;
+        return {
+          text: wordText,
+          time: Math.round(wordStart * 100) / 100,
+          endTime: Math.round(wordEnd * 100) / 100
+        };
+      });
+    }
+
+    return result;
   }
 
   /* --------------------------------------------------------
@@ -172,30 +207,40 @@
       lineEl.className = 'lyric-line';
       lineEl.setAttribute('data-idx', idx);
       lineEl.setAttribute('data-time', line.time);
-      lineEl.textContent = line.text;
 
-      // Click or touch to seek directly to that vocal line
-      const jumpToLyric = (e) => {
-        if (e) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-        const audio = document.getElementById('real-audio-player');
-        if (audio) {
-          audio.currentTime = line.time;
-          updateLyricsTime(line.time, true);
-          if (audio.paused) {
-            audio.play().then(() => {
-              if (typeof setPlayState === 'function') setPlayState(true);
-            }).catch(console.error);
-          } else {
-            if (typeof setPlayState === 'function') setPlayState(true);
-          }
-        }
-      };
+      if (line.words && line.words.length) {
+        line.words.forEach((word, wIdx) => {
+          const wordEl = document.createElement('span');
+          wordEl.className = 'lyric-word is-unsung';
+          wordEl.setAttribute('data-line-idx', idx);
+          wordEl.setAttribute('data-word-idx', wIdx);
+          wordEl.setAttribute('data-time', word.time);
+          wordEl.setAttribute('data-end', word.endTime);
+          wordEl.textContent = word.text;
 
-      lineEl.addEventListener('click', jumpToLyric);
-      lineEl.addEventListener('touchend', jumpToLyric);
+          // Click or touch on individual word jumps audio directly to this word
+          const onWordClick = (e) => {
+            if (e) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+            seekAudioToTime(word.time);
+          };
+
+          wordEl.addEventListener('click', onWordClick);
+          wordEl.addEventListener('touchend', onWordClick);
+
+          lineEl.appendChild(wordEl);
+        });
+      } else {
+        lineEl.textContent = line.text;
+      }
+
+      // Clicking line background seeks to line start
+      lineEl.addEventListener('click', (e) => {
+        if (e.target !== lineEl) return;
+        seekAudioToTime(line.time);
+      });
 
       scroller.appendChild(lineEl);
     });
@@ -217,13 +262,59 @@
   window.loadLyricsForSong = loadAndRenderLyrics;
 
   /* --------------------------------------------------------
-     4. REAL-TIME PLAYHEAD SYNC & SPRING SCROLL (BetterLyrics style)
+     4. DIRECT AUDIO SEEK CONTROLLER
+     Jump to exact lyric/word timestamp with robust audio state handling
+     -------------------------------------------------------- */
+  function seekAudioToTime(targetTime) {
+    const audio = document.getElementById('real-audio-player');
+    if (!audio) return;
+
+    const doSeek = () => {
+      try {
+        audio.currentTime = targetTime;
+      } catch (err) {
+        console.warn("Could not set currentTime immediately:", err);
+      }
+      updateLyricsTime(targetTime, true);
+      if (audio.paused) {
+        const p = audio.play();
+        if (p !== undefined) {
+          p.then(() => {
+            if (typeof setPlayState === 'function') setPlayState(true);
+          }).catch(err => {
+            console.warn("Audio play prevented:", err);
+          });
+        }
+      } else {
+        if (typeof setPlayState === 'function') setPlayState(true);
+      }
+    };
+
+    if (isNaN(audio.duration) || audio.readyState < 1) {
+      const onReady = () => {
+        audio.removeEventListener('loadedmetadata', onReady);
+        audio.removeEventListener('canplay', onReady);
+        doSeek();
+      };
+      audio.addEventListener('loadedmetadata', onReady);
+      audio.addEventListener('canplay', onReady);
+      audio.load();
+      audio.play().catch(() => {});
+    } else {
+      doSeek();
+    }
+  }
+  window.seekAudioToTime = seekAudioToTime;
+
+  /* --------------------------------------------------------
+     5. REAL-TIME WORD-BY-WORD PLAYHEAD SYNC & SPRING SCROLL
+     (Apple Music / BetterLyrics style karaoke illumination)
      -------------------------------------------------------- */
   function updateLyricsTime(currentTime, instant = false) {
     if (!isLyricsMode || !currentLyricLines || !currentLyricLines.length) return;
 
-    // Determine current active lyric line (with slight 0.12s anticipation)
-    const playTime = currentTime + 0.12;
+    // Determine current active lyric line (with slight 0.08s anticipation)
+    const playTime = currentTime + 0.08;
     let activeIdx = -1;
 
     for (let i = 0; i < currentLyricLines.length; i++) {
@@ -234,48 +325,124 @@
       }
     }
 
-    if (activeIdx === currentActiveLineIdx && !instant) return;
-    currentActiveLineIdx = activeIdx;
+    const lineChanged = (activeIdx !== currentActiveLineIdx);
+    if (lineChanged || instant) {
+      currentActiveLineIdx = activeIdx;
+
+      const scroller = document.getElementById('lyrics-scroller');
+      if (scroller) {
+        const allLineEls = scroller.querySelectorAll('.lyric-line');
+        allLineEls.forEach((el, idx) => {
+          el.classList.remove('is-active', 'is-past', 'is-future');
+          if (idx === activeIdx) {
+            el.classList.add('is-active');
+          } else if (idx < activeIdx) {
+            el.classList.add('is-past');
+            // Past line: all words are already sung
+            el.querySelectorAll('.lyric-word').forEach(w => {
+              w.classList.remove('is-current-word', 'is-unsung');
+              w.classList.add('is-sung');
+            });
+          } else {
+            el.classList.add('is-future');
+            // Future line: all words are unsung
+            el.querySelectorAll('.lyric-word').forEach(w => {
+              w.classList.remove('is-current-word', 'is-sung');
+              w.classList.add('is-unsung');
+            });
+          }
+        });
+
+        if (activeIdx >= 0 && allLineEls[activeIdx]) {
+          const activeEl = allLineEls[activeIdx];
+          const viewport = scroller.parentElement;
+          const viewportHeight = viewport ? viewport.clientHeight : 500;
+          const lineTop = activeEl.offsetTop;
+          const lineHeight = activeEl.offsetHeight;
+
+          // Apple Music focal position: roughly 38% from top of viewport
+          const targetScroll = Math.max(0, lineTop - (viewportHeight * 0.38) + (lineHeight / 2));
+
+          if (instant || typeof gsap === 'undefined') {
+            scroller.style.transform = `translateY(${-targetScroll}px)`;
+          } else {
+            // Fluid spring-like ease for organic Apple Music feel
+            gsap.to(scroller, {
+              y: -targetScroll,
+              duration: 0.68,
+              ease: "power2.out",
+              overwrite: "auto"
+            });
+          }
+        }
+      }
+    }
+
+    // Update word-by-word progression in the active line
+    updateActiveLineWords(currentTime);
+  }
+  window.updateLyricsTime = updateLyricsTime;
+
+  /* Real-time word illumination within the actively singing line */
+  function updateActiveLineWords(currentTime) {
+    if (currentActiveLineIdx < 0 || !currentLyricLines) return;
+    const activeLine = currentLyricLines[currentActiveLineIdx];
+    if (!activeLine || !activeLine.words || !activeLine.words.length) return;
 
     const scroller = document.getElementById('lyrics-scroller');
     if (!scroller) return;
+    const activeLineEl = scroller.querySelector(`.lyric-line[data-idx="${currentActiveLineIdx}"]`);
+    if (!activeLineEl) return;
 
-    const allLineEls = scroller.querySelectorAll('.lyric-line');
-    allLineEls.forEach((el, idx) => {
-      el.classList.remove('is-active', 'is-past', 'is-future');
-      if (idx === activeIdx) {
-        el.classList.add('is-active');
-      } else if (idx < activeIdx) {
-        el.classList.add('is-past');
+    const wordEls = activeLineEl.querySelectorAll('.lyric-word');
+    if (!wordEls.length) return;
+
+    const playTime = currentTime + 0.04;
+
+    for (let k = 0; k < activeLine.words.length; k++) {
+      const word = activeLine.words[k];
+      const wordEl = wordEls[k];
+      if (!wordEl) continue;
+
+      if (playTime >= word.time) {
+        wordEl.classList.remove('is-unsung');
+        wordEl.classList.add('is-sung');
+
+        if (playTime < word.endTime) {
+          // Actively singing this specific word right now!
+          wordEl.classList.add('is-current-word');
+        } else {
+          wordEl.classList.remove('is-current-word');
+        }
       } else {
-        el.classList.add('is-future');
-      }
-    });
-
-    if (activeIdx >= 0 && allLineEls[activeIdx]) {
-      const activeEl = allLineEls[activeIdx];
-      const viewport = scroller.parentElement;
-      const viewportHeight = viewport ? viewport.clientHeight : 500;
-      const lineTop = activeEl.offsetTop;
-      const lineHeight = activeEl.offsetHeight;
-
-      // Apple Music / BetterLyrics focal position: roughly 38% from top of viewport
-      const targetScroll = Math.max(0, lineTop - (viewportHeight * 0.38) + (lineHeight / 2));
-
-      if (instant || typeof gsap === 'undefined') {
-        scroller.style.transform = `translateY(${-targetScroll}px)`;
-      } else {
-        // Fluid spring-like ease for organic Apple Music feel
-        gsap.to(scroller, {
-          y: -targetScroll,
-          duration: 0.68,
-          ease: "power2.out",
-          overwrite: "auto"
-        });
+        wordEl.classList.remove('is-sung', 'is-current-word');
+        wordEl.classList.add('is-unsung');
       }
     }
   }
-  window.updateLyricsTime = updateLyricsTime;
+
+  /* 60 FPS Fluid Lyrics Animation Loop */
+  let lyricsLoopId = null;
+  function startLyricsLoop() {
+    if (lyricsLoopId) return;
+    function loop() {
+      if (isLyricsMode) {
+        const audio = document.getElementById('real-audio-player');
+        if (audio && !audio.paused) {
+          updateLyricsTime(audio.currentTime, false);
+        }
+      }
+      lyricsLoopId = requestAnimationFrame(loop);
+    }
+    lyricsLoopId = requestAnimationFrame(loop);
+  }
+
+  function stopLyricsLoop() {
+    if (lyricsLoopId) {
+      cancelAnimationFrame(lyricsLoopId);
+      lyricsLoopId = null;
+    }
+  }
 
   function getStackGalleryX() {
     const aspect = (window.innerWidth && window.innerHeight) ? (window.innerWidth / window.innerHeight) : 1.77;
@@ -586,7 +753,8 @@
     }
 
     if (isLyricsMode) {
-      // 1. Enter Lyrics Mode: animate discs to stack
+      // 1. Enter Lyrics Mode: animate discs to stack & start 60FPS fluid sync loop
+      startLyricsLoop();
       animateDiscsToStack(true);
 
       // 2. Animate Lyrics View into view
@@ -613,7 +781,8 @@
       // 4. Load lyrics for currently active song
       loadAndRenderLyrics(getActiveIndex());
     } else {
-      // 1. Exit Lyrics Mode: restore horizontal ribbon arc
+      // 1. Exit Lyrics Mode: stop loop & restore horizontal ribbon arc
+      stopLyricsLoop();
       animateDiscsToCarousel(true);
 
       // 2. Animate Lyrics View out
