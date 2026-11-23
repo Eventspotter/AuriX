@@ -1173,6 +1173,199 @@
     }
 
     /* ========================================================
+       ROTARY DIAL SONG SELECTOR (Lyrics Mode)
+       Minimalist dark rotary dial for switching between songs
+       ======================================================== */
+    .lyrics-rotary-dial {
+      position: absolute;
+      top: 64px;
+      left: 36px;
+      width: 440px;
+      height: 380px;
+      z-index: 35;
+      display: none;
+      opacity: 0;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+      transform-origin: left top;
+    }
+
+    .lyrics-rotary-dial.is-visible {
+      display: block;
+    }
+
+    .rotary-dial-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Rotary Disc Viewport & Half-Clipped Wheel */
+    .rotary-disc-viewport {
+      position: absolute;
+      left: -130px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 330px;
+      height: 330px;
+      border-radius: 50%;
+      pointer-events: auto;
+      cursor: grab;
+    }
+    .rotary-disc-viewport:active {
+      cursor: grabbing;
+    }
+
+    .rotary-disc-wheel {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: #1b1c20;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 2px 4px rgba(255, 255, 255, 0.08), inset 0 -4px 10px rgba(0, 0, 0, 0.6);
+      border: 3px solid #282a30;
+      will-change: transform;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Tactile Center Knob */
+    .rotary-disc-center {
+      position: relative;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #2a2c32, #111215);
+      border: 2px solid #3a3d46;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .rotary-star-icon {
+      width: 58px;
+      height: 58px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    }
+
+    /* Perimeter ticks & outer notch accent */
+    .rotary-disc-rim {
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+    }
+
+    /* Indicator Needles */
+    .rotary-indicator-needle {
+      position: absolute;
+      right: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 3.5px;
+      background: #ffffff;
+      border-radius: 2px;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .rotary-indicator-pip {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 6.5px;
+      height: 6.5px;
+      border-radius: 50%;
+      background: #e65100;
+      box-shadow: 0 0 8px #ff6d00;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    /* Arc Track List */
+    .rotary-track-list {
+      position: absolute;
+      left: 175px;
+      top: 0;
+      bottom: 0;
+      width: 260px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+    }
+
+    .rotary-track-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 7px 0;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.45);
+      font-family: var(--font-sans);
+      font-size: 0.88rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .rotary-track-item:hover {
+      color: rgba(255, 255, 255, 0.85);
+      transform: translateX(4px);
+    }
+
+    .rotary-track-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.28);
+      flex-shrink: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .rotary-track-item.is-active {
+      color: #ff6d00 !important;
+      font-weight: 600;
+      font-size: 0.94rem;
+    }
+
+    .rotary-track-item.is-active .rotary-track-dot {
+      background: #ff6d00 !important;
+      transform: scale(1.6);
+      box-shadow: 0 0 8px rgba(255, 109, 0, 0.7);
+    }
+
+    @media (max-width: 1024px) {
+      .lyrics-rotary-dial {
+        transform: scale(0.85);
+        left: 20px;
+        top: 60px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .lyrics-rotary-dial {
+        display: none !important;
+      }
+    }
+
+    /* ========================================================
        ADD SONG MODAL STYLING (A24 Monochromatic Minimalism)
        ======================================================== */
     .add-song-modal {
@@ -1753,6 +1946,32 @@
       </div>
     </div>
   </aside>
+
+  <!-- Interactive Rotary Dial Selector (Lyrics Mode) -->
+  <div class="lyrics-rotary-dial" id="lyrics-rotary-dial" aria-label="Song Rotary Dial Navigation">
+    <div class="rotary-dial-container">
+      <div class="rotary-disc-viewport">
+        <div class="rotary-disc-wheel" id="rotary-disc-wheel">
+          <!-- Hub center design -->
+          <div class="rotary-disc-center">
+            <svg viewBox="0 0 100 100" class="rotary-star-icon">
+              <!-- Tactile 8-point gear/starburst identical to reference dial -->
+              <path d="M50 20 C52 20 54 26 55 31 C59 28 64 26 66 27 C67 29 65 35 63 39 C67 39 73 40 73 42 C73 44 68 47 64 49 C67 52 72 56 71 58 C69 60 64 58 60 56 C61 60 62 66 60 67 C58 68 55 64 53 60 C50 63 46 67 44 66 C42 65 44 59 45 55 C41 57 35 60 34 58 C33 56 37 52 40 49 C36 47 31 44 31 42 C32 40 37 40 41 39 C39 35 37 29 39 27 C41 26 45 28 48 31 C49 26 48 20 50 20 Z" fill="#ffffff" />
+            </svg>
+          </div>
+          <!-- Notches and tick rings -->
+          <div class="rotary-disc-rim"></div>
+        </div>
+        <!-- Active alignment indicator pointer & pip -->
+        <div class="rotary-indicator-needle"></div>
+        <div class="rotary-indicator-pip"></div>
+      </div>
+      <!-- Radial curved track roster list -->
+      <div class="rotary-track-list" id="rotary-track-list">
+        <!-- Injected dynamically by lyrics.js -->
+      </div>
+    </div>
+  </div>
 
   <!-- Three.js 3D Viewport -->
   <div id="webgl-canvas"></div>

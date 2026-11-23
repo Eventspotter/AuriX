@@ -1020,12 +1020,16 @@
         }
       }
 
+      // Show Rotary Dial Selector in top-left region
+      showRotaryDial();
+
       // 4. Load lyrics for currently active song
       loadAndRenderLyrics(getActiveIndex());
     } else {
       // 1. Exit Lyrics Mode: stop loop & restore horizontal ribbon arc
       stopLyricsLoop();
       animateDiscsToCarousel(true);
+      hideRotaryDial();
 
       // Smooth slide control menu back to left and restore bottom-left audio player dock
       if (audioDock && lyricsDock && typeof gsap !== 'undefined') {
@@ -1105,8 +1109,175 @@
       const idx = e.detail?.index ?? getActiveIndex();
       animateDiscsToStack(true);
       loadAndRenderLyrics(idx);
+      updateRotaryDialSelection(idx);
     }
   });
+
+  /* --------------------------------------------------------
+     9. ROTARY DIAL CONTROLLER (Lyrics Mode)
+     -------------------------------------------------------- */
+  let rotaryDialAngle = 0;
+  let isRotaryDragging = false;
+  let rotaryDragStartY = 0;
+  let rotaryDragStartAngle = 0;
+
+  function renderRotaryDialTracks() {
+    const trackList = document.getElementById('rotary-track-list');
+    if (!trackList) return;
+    const allSongs = (typeof SONGS !== 'undefined' ? SONGS : window.SONGS) || [];
+    trackList.innerHTML = '';
+
+    allSongs.forEach((song, idx) => {
+      const item = document.createElement('div');
+      item.className = 'rotary-track-item';
+      item.setAttribute('data-idx', idx);
+
+      const dot = document.createElement('div');
+      dot.className = 'rotary-track-dot';
+
+      const label = document.createElement('span');
+      label.className = 'rotary-track-title';
+      label.textContent = song.title || `Track ${idx + 1}`;
+
+      item.appendChild(dot);
+      item.appendChild(label);
+
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof playSongEndScrollAnimation === 'function') {
+          const dir = idx >= getActiveIndex() ? 1 : -1;
+          playSongEndScrollAnimation(dir, () => {
+            if (typeof selectSong === 'function') selectSong(idx, true);
+          });
+        } else if (typeof selectSong === 'function') {
+          selectSong(idx, true);
+        }
+      });
+
+      trackList.appendChild(item);
+    });
+
+    updateRotaryDialSelection(getActiveIndex(), true);
+  }
+
+  function updateRotaryDialSelection(activeIdx, instant = false) {
+    const trackList = document.getElementById('rotary-track-list');
+    const wheel = document.getElementById('rotary-disc-wheel');
+    if (!trackList) return;
+
+    const items = trackList.querySelectorAll('.rotary-track-item');
+    items.forEach((item, idx) => {
+      const isActive = (idx === activeIdx);
+      if (isActive) {
+        item.classList.add('is-active');
+      } else {
+        item.classList.remove('is-active');
+      }
+
+      // Curved radius displacement based on distance from active index
+      const dist = idx - activeIdx;
+      const absDist = Math.abs(dist);
+      const curveX = Math.max(0, 16 - absDist * 3.5);
+      const itemOpacity = Math.max(0.18, 1 - absDist * 0.22);
+      item.style.transform = `translateX(${curveX}px)`;
+      item.style.opacity = isActive ? '1' : itemOpacity.toFixed(2);
+    });
+
+    // Rotate dial wheel smoothly based on track index step (~18 deg per track)
+    const allSongs = (typeof SONGS !== 'undefined' ? SONGS : window.SONGS) || [];
+    if (wheel && allSongs.length > 0) {
+      const stepAngle = 360 / Math.max(8, allSongs.length);
+      rotaryDialAngle = activeIdx * stepAngle;
+      if (typeof gsap !== 'undefined' && !instant) {
+        gsap.to(wheel, {
+          rotation: rotaryDialAngle,
+          duration: 0.5,
+          ease: "power2.out"
+        });
+      } else {
+        wheel.style.transform = `rotate(${rotaryDialAngle}deg)`;
+      }
+    }
+  }
+
+  function showRotaryDial() {
+    const dial = document.getElementById('lyrics-rotary-dial');
+    if (!dial) return;
+    renderRotaryDialTracks();
+    dial.classList.add('is-visible');
+    if (typeof gsap !== 'undefined') {
+      gsap.killTweensOf(dial);
+      gsap.fromTo(dial, 
+        { opacity: 0, x: -30, scale: 0.94 },
+        { opacity: 1, x: 0, scale: 1, duration: 0.6, ease: "power3.out", delay: 0.1 }
+      );
+    } else {
+      dial.style.opacity = '1';
+    }
+  }
+
+  function hideRotaryDial() {
+    const dial = document.getElementById('lyrics-rotary-dial');
+    if (!dial) return;
+    if (typeof gsap !== 'undefined') {
+      gsap.killTweensOf(dial);
+      gsap.to(dial, {
+        opacity: 0,
+        x: -20,
+        scale: 0.94,
+        duration: 0.35,
+        ease: "power2.in",
+        onComplete: () => {
+          dial.classList.remove('is-visible');
+        }
+      });
+    } else {
+      dial.classList.remove('is-visible');
+    }
+  }
+
+  function initRotaryDialInteractions() {
+    const dial = document.getElementById('lyrics-rotary-dial');
+    const viewport = dial ? dial.querySelector('.rotary-disc-viewport') : null;
+    if (!viewport) return;
+
+    // Wheel drag interaction to switch tracks with tactile click feel
+    viewport.addEventListener('pointerdown', (e) => {
+      isRotaryDragging = true;
+      rotaryDragStartY = e.clientY;
+      rotaryDragStartAngle = rotaryDialAngle;
+      viewport.setPointerCapture(e.pointerId);
+    });
+
+    viewport.addEventListener('pointermove', (e) => {
+      if (!isRotaryDragging) return;
+      const deltaY = e.clientY - rotaryDragStartY;
+      const allSongs = (typeof SONGS !== 'undefined' ? SONGS : window.SONGS) || [];
+      if (Math.abs(deltaY) > 30 && allSongs.length > 0) {
+        const dir = deltaY > 0 ? 1 : -1;
+        const curIdx = getActiveIndex();
+        const nextIdx = (curIdx + dir + allSongs.length) % allSongs.length;
+        rotaryDragStartY = e.clientY;
+        if (typeof playSongEndScrollAnimation === 'function') {
+          playSongEndScrollAnimation(dir, () => {
+            if (typeof selectSong === 'function') selectSong(nextIdx, true);
+          });
+        } else if (typeof selectSong === 'function') {
+          selectSong(nextIdx, true);
+        }
+      }
+    });
+
+    const stopDrag = (e) => {
+      if (isRotaryDragging) {
+        isRotaryDragging = false;
+        try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+    };
+    viewport.addEventListener('pointerup', stopDrag);
+    viewport.addEventListener('pointercancel', stopDrag);
+  }
 
   // Attach button and keyboard listeners
   function initLyricsEvents() {
@@ -1237,6 +1408,8 @@
         }
       });
     }
+
+    initRotaryDialInteractions();
   }
 
   if (document.readyState === 'loading') {
