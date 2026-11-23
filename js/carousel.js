@@ -136,6 +136,11 @@ function selectSong(idx, playImmediately = true, options = {}) {
     loadAudioTrack(idx, playImmediately);
   }
 
+  // Asynchronously fetch online critical reviews from Wikipedia / music publications
+  if (typeof fetchReviewsForSong === 'function') {
+    fetchReviewsForSong(song);
+  }
+
   // Dispatch global songchange event
   window.dispatchEvent(new CustomEvent('aurix:songchange', { detail: { index: idx } }));
 }

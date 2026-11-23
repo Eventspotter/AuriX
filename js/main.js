@@ -84,4 +84,7 @@ function animate() {
 if (typeof initCDs === 'function') {
   initCDs();
 }
+if (typeof fetchReviewsForSong === 'function' && typeof SONGS !== 'undefined' && SONGS[0]) {
+  fetchReviewsForSong(SONGS[0]);
+}
 animate();

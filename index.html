@@ -637,7 +637,7 @@
        ======================================================== */
     .reviews-container {
       position: absolute;
-      bottom: 42px;
+      bottom: 58px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -961,17 +961,17 @@
       cursor: pointer;
       pointer-events: auto;
       color: #111111;
-      opacity: 0.25;
-      filter: blur(1.2px);
+      opacity: 0.28;
+      filter: blur(0.8px);
       transform: scale(0.98);
       transform-origin: left bottom;
-      transition: opacity 0.22s cubic-bezier(0.25, 1, 0.5, 1),
-                  filter 0.22s cubic-bezier(0.25, 1, 0.5, 1),
-                  transform 0.22s cubic-bezier(0.25, 1, 0.5, 1),
-                  color 0.15s ease;
+      --word-progress: 0%;
+      /* Snappy pop-up transition for instant, crisp vocal onset */
+      transition: transform 0.08s cubic-bezier(0.18, 0.89, 0.32, 1.28),
+                  filter 0.12s ease-out;
     }
     .lyric-word:hover {
-      opacity: 0.95 !important;
+      opacity: 1.0 !important;
       filter: blur(0px) !important;
       transform: scale(1.05) !important;
       color: #000000 !important;
@@ -981,29 +981,41 @@
     }
 
     /* In active line: sung words */
-    .lyric-line.is-active .lyric-word.is-sung {
-      opacity: 0.95;
+    .lyric-line.is-active .lyric-word.is-sung:not(.is-current-word) {
+      opacity: 0.96 !important;
       filter: blur(0px);
-      font-weight: 700;
+      font-weight: 650;
       color: #000000;
       transform: scale(1.0);
+      background: none;
+      -webkit-text-fill-color: initial;
     }
 
-    /* In active line: word actively being vocalized right now */
+    /* In active line: word actively being vocalized right now (BetterLyrics progressive fill & sustained glow) */
     .lyric-line.is-active .lyric-word.is-current-word {
-      opacity: 1.0;
       filter: blur(0px);
-      font-weight: 800;
+      font-weight: 750;
       color: #000000;
-      transform: scale(1.06);
-      text-shadow: 0 0 1px rgba(0, 0, 0, 0.25);
+      transform: scale(1.06) translateY(-0.5px);
+      background: linear-gradient(
+        90deg,
+        #000000 0%,
+        #000000 var(--word-progress, 0%),
+        rgba(0, 0, 0, 0.36) calc(var(--word-progress, 0%) + 10%),
+        rgba(0, 0, 0, 0.26) 100%
+      );
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 1px rgba(0, 0, 0, 0.15);
     }
 
     /* In active line: upcoming words not yet sung */
     .lyric-line.is-active .lyric-word.is-unsung {
-      opacity: 0.32;
+      opacity: 0.28;
       filter: blur(0.7px);
-      transform: scale(0.99);
+      transform: scale(0.98);
+      background: none;
+      -webkit-text-fill-color: initial;
     }
 
     /* Past and future lines words default to line opacity */
@@ -1715,16 +1727,17 @@
   </div>
 
   <!-- Modular AuriX Audio & 3D WebGL Engine -->
-  <script src="./js/state.js?v=3"></script>
-  <script src="./js/lyrics-data.js?v=3"></script>
-  <script src="./js/navigation.js?v=3"></script>
-  <script src="./js/audio-player.js?v=3"></script>
-  <script src="./js/cd-scene.js?v=3"></script>
-  <script src="./js/scribble.js?v=3"></script>
-  <script src="./js/lyrics.js?v=3"></script>
-  <script src="./js/carousel.js?v=3"></script>
-  <script src="./js/interactions.js?v=3"></script>
-  <script src="./js/add-song.js?v=3"></script>
-  <script src="./js/main.js?v=3"></script>
+  <script src="./js/state.js?v=4"></script>
+  <script src="./js/lyrics-data.js?v=4"></script>
+  <script src="./js/navigation.js?v=4"></script>
+  <script src="./js/audio-player.js?v=4"></script>
+  <script src="./js/cd-scene.js?v=4"></script>
+  <script src="./js/scribble.js?v=4"></script>
+  <script src="./js/lyrics.js?v=4"></script>
+  <script src="./js/reviews.js?v=4"></script>
+  <script src="./js/carousel.js?v=4"></script>
+  <script src="./js/interactions.js?v=4"></script>
+  <script src="./js/add-song.js?v=4"></script>
+  <script src="./js/main.js?v=4"></script>
 </body>
 </html>

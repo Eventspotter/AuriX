@@ -75,16 +75,32 @@
         continue;
       }
 
-      // Vocal delivery takes around 78% of line interval, with natural breathing pause before next line
-      const vocalDuration = Math.max(0.6, Math.min(lineDuration * 0.78, rawWords.length * 0.75));
+      // Natural vocal delivery:
+      // If there's an interval before next line, vocals span the phrase with breathing room
+      const vocalDuration = Math.max(0.7, Math.min(lineDuration * 0.86, Math.max(rawWords.length * 0.45, lineDuration - 0.5)));
 
-      // Weight each word by syllable/character count so syllables get realistic singing duration
-      const weights = rawWords.map(w => Math.max(1, w.replace(/[^a-zA-Z0-9]/g, '').length));
+      // Weight words:
+      // - Standard characters: weight 1x
+      // - Punctuation / prolonged vowels (e.g. "?", "!", "...", "—", "~"): 2.2x
+      // - Trailing word in line: gets 2.5x weight to capture natural vocal sustain/held notes!
+      const weights = rawWords.map((w, idx) => {
+        const cleanLen = Math.max(1, Math.min(10, w.replace(/[^a-zA-Z0-9]/g, '').length));
+        let weight = cleanLen;
+        // Check for punctuation or vowel prolongation
+        if (/[?!.~—–\-]$/.test(w) || /[aeiouy]{2,}/i.test(w)) {
+          weight *= 2.2;
+        }
+        // Last word of the phrase is sustained by the singer
+        if (idx === rawWords.length - 1) {
+          weight *= (rawWords.length === 1 ? 3.5 : 2.5);
+        }
+        return weight;
+      });
       const totalWeight = weights.reduce((sum, w) => sum + w, 0);
 
       let currentOffset = 0;
       line.words = rawWords.map((wordText, wIdx) => {
-        const duration = (weights[wIdx] / totalWeight) * vocalDuration;
+        const duration = Math.max(0.12, (weights[wIdx] / totalWeight) * vocalDuration);
         const wordStart = line.time + currentOffset;
         const wordEnd = wordStart + duration;
         currentOffset += duration;
@@ -342,6 +358,8 @@
             el.querySelectorAll('.lyric-word').forEach(w => {
               w.classList.remove('is-current-word', 'is-unsung');
               w.classList.add('is-sung');
+              w.style.opacity = '';
+              w.style.setProperty('--word-progress', '100%');
             });
           } else {
             el.classList.add('is-future');
@@ -349,6 +367,8 @@
             el.querySelectorAll('.lyric-word').forEach(w => {
               w.classList.remove('is-current-word', 'is-sung');
               w.classList.add('is-unsung');
+              w.style.opacity = '';
+              w.style.setProperty('--word-progress', '0%');
             });
           }
         });
@@ -383,7 +403,7 @@
   }
   window.updateLyricsTime = updateLyricsTime;
 
-  /* Real-time word illumination within the actively singing line */
+  /* Real-time word illumination within the actively singing line (BetterLyrics / Apple Music) */
   function updateActiveLineWords(currentTime) {
     if (currentActiveLineIdx < 0 || !currentLyricLines) return;
     const activeLine = currentLyricLines[currentActiveLineIdx];
@@ -405,18 +425,31 @@
       if (!wordEl) continue;
 
       if (playTime >= word.time) {
-        wordEl.classList.remove('is-unsung');
-        wordEl.classList.add('is-sung');
-
         if (playTime < word.endTime) {
           // Actively singing this specific word right now!
-          wordEl.classList.add('is-current-word');
+          wordEl.classList.add('is-current-word', 'is-sung');
+          wordEl.classList.remove('is-unsung');
+
+          const duration = Math.max(0.08, word.endTime - word.time);
+          const progress = Math.min(1.0, Math.max(0, (playTime - word.time) / duration));
+
+          // BetterLyrics: word slowly increases opacity & sweeps fill as singer sustains note
+          const wordOpacity = 0.58 + 0.42 * progress;
+          wordEl.style.opacity = wordOpacity.toFixed(3);
+          wordEl.style.setProperty('--word-progress', `${(progress * 100).toFixed(1)}%`);
         } else {
-          wordEl.classList.remove('is-current-word');
+          // Finished singing this word (fully sung)
+          wordEl.classList.remove('is-current-word', 'is-unsung');
+          wordEl.classList.add('is-sung');
+          wordEl.style.opacity = '0.96';
+          wordEl.style.setProperty('--word-progress', '100%');
         }
       } else {
-        wordEl.classList.remove('is-sung', 'is-current-word');
+        // Upcoming unsung word
+        wordEl.classList.remove('is-current-word', 'is-sung');
         wordEl.classList.add('is-unsung');
+        wordEl.style.opacity = '';
+        wordEl.style.setProperty('--word-progress', '0%');
       }
     }
   }
