@@ -1174,25 +1174,38 @@
 
     /* ========================================================
        ROTARY DIAL SONG SELECTOR (Lyrics Mode)
-       Minimalist dark rotary dial for switching between songs
+       Interactive transition dial inspired by animation-gallery-xi.vercel.app
+       Opens only when requested or hovered on dial button / left trigger zone.
        ======================================================== */
     .lyrics-rotary-dial {
       position: absolute;
-      top: 64px;
-      left: 36px;
-      width: 440px;
-      height: 380px;
-      z-index: 35;
+      top: 50%;
+      left: 28px;
+      transform: translateY(-50%) scale(0.92);
+      width: 480px;
+      height: 440px;
+      z-index: 50;
       display: none;
       opacity: 0;
-      pointer-events: auto;
+      pointer-events: none;
       user-select: none;
       -webkit-user-select: none;
-      transform-origin: left top;
+      transform-origin: left center;
+      transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .lyrics-rotary-dial.is-visible {
+    .lyrics-rotary-dial.is-open {
       display: block;
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-50%) scale(1);
+    }
+
+    .lyrics-ctrl-btn--dial-toggle.is-active {
+      background: #ff6d00 !important;
+      color: #ffffff !important;
+      transform: scale(1.08);
+      box-shadow: 0 0 12px rgba(255, 109, 0, 0.5);
     }
 
     .rotary-dial-container {
@@ -1206,11 +1219,11 @@
     /* Rotary Disc Viewport & Half-Clipped Wheel */
     .rotary-disc-viewport {
       position: absolute;
-      left: -130px;
+      left: -120px;
       top: 50%;
       transform: translateY(-50%);
-      width: 330px;
-      height: 330px;
+      width: 360px;
+      height: 360px;
       border-radius: 50%;
       pointer-events: auto;
       cursor: grab;
@@ -1224,25 +1237,25 @@
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      background: #1b1c20;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 2px 4px rgba(255, 255, 255, 0.08), inset 0 -4px 10px rgba(0, 0, 0, 0.6);
-      border: 3px solid #282a30;
+      background: #14161a;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55), inset 0 2px 4px rgba(255, 255, 255, 0.1), inset 0 -4px 12px rgba(0, 0, 0, 0.7);
+      border: 3.5px solid #23262d;
       will-change: transform;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    /* Tactile Center Knob */
+    /* Tactile Center Star Knob (1:1 with Animation Gallery Star SVG) */
     .rotary-disc-center {
       position: relative;
-      width: 110px;
-      height: 110px;
+      width: 130px;
+      height: 130px;
       border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, #2a2c32, #111215);
-      border: 2px solid #3a3d46;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.15);
+      background: radial-gradient(circle at 35% 35%, #23262d, #090a0d);
+      border: 2px solid #353842;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.65), inset 0 1px 2px rgba(255, 255, 255, 0.18);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1250,112 +1263,116 @@
     }
 
     .rotary-star-icon {
-      width: 58px;
-      height: 58px;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+      width: 72px;
+      height: 72px;
+      filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
     }
 
     /* Perimeter ticks & outer notch accent */
     .rotary-disc-rim {
       position: absolute;
-      inset: 8px;
+      inset: 10px;
       border-radius: 50%;
-      border: 1px dashed rgba(255, 255, 255, 0.12);
+      border: 1px dashed rgba(255, 255, 255, 0.15);
       pointer-events: none;
     }
 
-    /* Indicator Needles */
+    /* Reference indicator Needle (White) */
     .rotary-indicator-needle {
       position: absolute;
-      right: -8px;
+      right: -12px;
       top: 50%;
       transform: translateY(-50%);
-      width: 18px;
-      height: 3.5px;
+      width: 28px;
+      height: 4.5px;
       background: #ffffff;
-      border-radius: 2px;
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+      border-radius: 3px;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
       z-index: 5;
       pointer-events: none;
     }
 
+    /* Active alignment Pip (Vivid Orange #ff3b30 / #ff6d00) */
     .rotary-indicator-pip {
       position: absolute;
-      right: 14px;
+      right: 18px;
       top: 50%;
       transform: translateY(-50%);
-      width: 6.5px;
-      height: 6.5px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: #e65100;
-      box-shadow: 0 0 8px #ff6d00;
+      background: #ff3b30;
+      box-shadow: 0 0 10px #ff3b30, 0 0 16px rgba(255, 59, 48, 0.5);
       z-index: 5;
       pointer-events: none;
     }
 
-    /* Arc Track List */
+    /* Arc Track List with Smooth Radial Font & Easing */
     .rotary-track-list {
       position: absolute;
-      left: 175px;
+      left: 200px;
       top: 0;
       bottom: 0;
-      width: 260px;
+      width: 280px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+      mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+      pointer-events: auto;
     }
 
     .rotary-track-item {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 7px 0;
+      gap: 14px;
+      padding: 9px 0;
       cursor: pointer;
-      color: rgba(255, 255, 255, 0.45);
+      color: rgba(255, 255, 255, 0.42);
       font-family: var(--font-sans);
-      font-size: 0.88rem;
+      font-size: 0.92rem;
       font-weight: 500;
       letter-spacing: -0.01em;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
     }
 
     .rotary-track-item:hover {
-      color: rgba(255, 255, 255, 0.85);
-      transform: translateX(4px);
+      color: rgba(255, 255, 255, 0.9);
+      transform: translateX(6px);
     }
 
     .rotary-track-dot {
-      width: 4px;
-      height: 4px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.28);
+      background: rgba(255, 255, 255, 0.25);
       flex-shrink: 0;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .rotary-track-item.is-active {
-      color: #ff6d00 !important;
+      color: #ff7a1a !important;
       font-weight: 600;
-      font-size: 0.94rem;
+      font-size: 1.02rem;
     }
 
     .rotary-track-item.is-active .rotary-track-dot {
-      background: #ff6d00 !important;
+      background: #ff7a1a !important;
       transform: scale(1.6);
-      box-shadow: 0 0 8px rgba(255, 109, 0, 0.7);
+      box-shadow: 0 0 10px rgba(255, 122, 26, 0.85);
     }
 
     @media (max-width: 1024px) {
       .lyrics-rotary-dial {
-        transform: scale(0.85);
-        left: 20px;
-        top: 60px;
+        transform: translateY(-50%) scale(0.85);
+        left: 10px;
+      }
+      .lyrics-rotary-dial.is-open {
+        transform: translateY(-50%) scale(0.9);
       }
     }
 
@@ -1920,6 +1937,12 @@
           <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
         </svg>
       </button>
+      <button class="lyrics-ctrl-btn lyrics-ctrl-btn--dial-toggle" id="lyrics-btn-dial-toggle" title="Select Song with Rotary Dial (D)" aria-label="Toggle Rotary Dial Song Selector">
+        <!-- 8-point rotary gear star icon -->
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2c.4 0 .7.6.8 1.1l.4 2.2c.4.1.8.3 1.2.6l1.9-1.2c.4-.3.9-.1 1.2.2l1.4 1.4c.3.3.4.8.2 1.2l-1.2 1.9c.3.4.5.8.6 1.2l2.2.4c.5.1 1.1.4 1.1.8v2c0 .4-.6.7-1.1.8l-2.2.4c-.1.4-.3.8-.6 1.2l1.2 1.9c.2.4.1.9-.2 1.2l-1.4 1.4c-.3.3-.8.4-1.2.2l-1.9-1.2c-.4.3-.8.5-1.2.6l-.4 2.2c-.1.5-.4 1.1-.8 1.1h-2c-.4 0-.7-.6-.8-1.1l-.4-2.2c-.4-.1-.8-.3-1.2-.6l-1.9 1.2c-.4.3-.9.1-1.2-.2l-1.4-1.4c-.3-.3-.4-.8-.2-1.2l1.2-1.9c-.3-.4-.5-.8-.6-1.2l-2.2-.4c-.5-.1-1.1-.4-1.1-.8v-2c0-.4.6-.7 1.1-.8l2.2-.4c.1-.4.3-.8.6-1.2l-1.2-1.9c-.2-.4-.1-.9.2-1.2l1.4-1.4c.3-.3.8-.4 1.2-.2l1.9 1.2c.4-.3.8-.5 1.2-.6l.4-2.2c.1-.5.4-1.1.8-1.1h2zm0 6a4 4 0 100 8 4 4 0 000-8z"/>
+        </svg>
+      </button>
       <div class="lyrics-ctrl-divider"></div>
       <button class="lyrics-ctrl-btn lyrics-ctrl-btn--close" id="lyrics-btn-close" title="Exit Lyrics Mode (L)" aria-label="Exit Lyrics Mode">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1954,9 +1977,9 @@
         <div class="rotary-disc-wheel" id="rotary-disc-wheel">
           <!-- Hub center design -->
           <div class="rotary-disc-center">
-            <svg viewBox="0 0 100 100" class="rotary-star-icon">
-              <!-- Tactile 8-point gear/starburst identical to reference dial -->
-              <path d="M50 20 C52 20 54 26 55 31 C59 28 64 26 66 27 C67 29 65 35 63 39 C67 39 73 40 73 42 C73 44 68 47 64 49 C67 52 72 56 71 58 C69 60 64 58 60 56 C61 60 62 66 60 67 C58 68 55 64 53 60 C50 63 46 67 44 66 C42 65 44 59 45 55 C41 57 35 60 34 58 C33 56 37 52 40 49 C36 47 31 44 31 42 C32 40 37 40 41 39 C39 35 37 29 39 27 C41 26 45 28 48 31 C49 26 48 20 50 20 Z" fill="#ffffff" />
+            <svg viewBox="0 0 268 268" class="rotary-star-icon">
+              <!-- Exact Transitery/Animation Gallery Gear Star Path -->
+              <path d="M142.081 0.000118934C150.666 0.000183094 157.409 7.35129 156.671 15.9046L153.704 50.2668C152.474 64.5139 170.298 71.8968 179.503 60.9529L201.709 34.5505C207.235 27.9803 217.201 27.551 223.272 33.6217L234.525 44.8748C240.595 50.9454 240.166 60.912 233.596 66.4379L207.078 88.7405C196.134 97.945 203.517 115.769 217.764 114.539L252.096 111.575C260.649 110.837 268 117.581 268 126.166L268 142.08C268 150.665 260.649 157.409 252.095 156.67L217.733 153.704C203.486 152.474 196.103 170.297 207.047 179.502L233.449 201.708C240.02 207.234 240.449 217.201 234.378 223.272L223.126 234.524C217.055 240.595 207.088 240.165 201.562 233.595L179.533 207.403C170.328 196.459 152.505 203.842 153.735 218.089L156.671 252.096C157.409 260.649 150.665 268 142.08 268H126.166C117.581 268 110.837 260.649 111.575 252.096L114.537 217.794C115.767 203.547 97.9428 196.164 88.7384 207.108L66.5833 233.45C61.0574 240.02 51.0907 240.45 45.0201 234.379L33.7671 223.126C27.6965 217.055 28.1259 207.089 34.6961 201.563L60.9228 179.504C71.8666 170.3 64.4837 152.476 50.2367 153.706L15.9044 156.67C7.35111 157.409 0 150.665 0 142.08V126.165C0 117.58 7.35108 110.837 15.9044 111.575L50.2062 114.536C64.4532 115.766 71.836 97.9424 60.8921 88.7379L34.5503 66.5828C27.98 61.0569 27.5506 51.0903 33.6212 45.0197L44.8743 33.7667C50.9449 27.6961 60.9115 28.1255 66.4374 34.6957L88.7693 61.2478C97.9738 72.1917 115.797 64.809 114.568 50.5619L111.576 15.9043C110.837 7.35101 117.581 -6.41602e-05 126.166 4.18228e-10L142.081 0.000118934Z" fill="#f4f6f8" />
             </svg>
           </div>
           <!-- Notches and tick rings -->

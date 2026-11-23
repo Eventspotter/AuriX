@@ -1020,8 +1020,8 @@
         }
       }
 
-      // Show Rotary Dial Selector in top-left region
-      showRotaryDial();
+      // Initialize Rotary Dial Selector (closed by default until opened or hovered)
+      prepRotaryDial();
 
       // 4. Load lyrics for currently active song
       loadAndRenderLyrics(getActiveIndex());
@@ -1029,7 +1029,7 @@
       // 1. Exit Lyrics Mode: stop loop & restore horizontal ribbon arc
       stopLyricsLoop();
       animateDiscsToCarousel(true);
-      hideRotaryDial();
+      closeRotaryDial();
 
       // Smooth slide control menu back to left and restore bottom-left audio player dock
       if (audioDock && lyricsDock && typeof gsap !== 'undefined') {
@@ -1115,11 +1115,16 @@
 
   /* --------------------------------------------------------
      9. ROTARY DIAL CONTROLLER (Lyrics Mode)
+     Interactive dial modeled after https://animation-gallery-xi.vercel.app
+     - Hidden by default; opens when hovering or pressing dial button
+     - Scrub smoothly with mouse wheel or vertical drag gesture
      -------------------------------------------------------- */
   let rotaryDialAngle = 0;
   let isRotaryDragging = false;
   let rotaryDragStartY = 0;
-  let rotaryDragStartAngle = 0;
+  let isRotaryOpen = false;
+  let rotaryHideTimer = null;
+  let rotaryAccumulatedDelta = 0;
 
   function renderRotaryDialTracks() {
     const trackList = document.getElementById('rotary-track-list');
@@ -1175,16 +1180,16 @@
         item.classList.remove('is-active');
       }
 
-      // Curved radius displacement based on distance from active index
+      // Curved radius displacement based on distance from active index (Animation Gallery style)
       const dist = idx - activeIdx;
       const absDist = Math.abs(dist);
-      const curveX = Math.max(0, 16 - absDist * 3.5);
+      const curveX = Math.max(0, 20 - absDist * 4);
       const itemOpacity = Math.max(0.18, 1 - absDist * 0.22);
       item.style.transform = `translateX(${curveX}px)`;
       item.style.opacity = isActive ? '1' : itemOpacity.toFixed(2);
     });
 
-    // Rotate dial wheel smoothly based on track index step (~18 deg per track)
+    // Rotate dial wheel smoothly based on track index step
     const allSongs = (typeof SONGS !== 'undefined' ? SONGS : window.SONGS) || [];
     if (wheel && allSongs.length > 0) {
       const stepAngle = 360 / Math.max(8, allSongs.length);
@@ -1192,7 +1197,7 @@
       if (typeof gsap !== 'undefined' && !instant) {
         gsap.to(wheel, {
           rotation: rotaryDialAngle,
-          duration: 0.5,
+          duration: 0.45,
           ease: "power2.out"
         });
       } else {
@@ -1201,82 +1206,172 @@
     }
   }
 
-  function showRotaryDial() {
-    const dial = document.getElementById('lyrics-rotary-dial');
-    if (!dial) return;
+  function prepRotaryDial() {
     renderRotaryDialTracks();
-    dial.classList.add('is-visible');
+    closeRotaryDial();
+  }
+
+  function openRotaryDial() {
+    clearTimeout(rotaryHideTimer);
+    if (!isLyricsMode) return;
+    const dial = document.getElementById('lyrics-rotary-dial');
+    const btn = document.getElementById('lyrics-btn-dial-toggle');
+    if (!dial) return;
+
+    isRotaryOpen = true;
+    renderRotaryDialTracks();
+    dial.classList.add('is-open');
+    if (btn) btn.classList.add('is-active');
+
     if (typeof gsap !== 'undefined') {
       gsap.killTweensOf(dial);
-      gsap.fromTo(dial, 
-        { opacity: 0, x: -30, scale: 0.94 },
-        { opacity: 1, x: 0, scale: 1, duration: 0.6, ease: "power3.out", delay: 0.1 }
+      gsap.fromTo(dial,
+        { opacity: 0, x: -30, scale: 0.92 },
+        { opacity: 1, x: 0, scale: 1, duration: 0.4, ease: "power3.out" }
       );
-    } else {
-      dial.style.opacity = '1';
     }
   }
 
-  function hideRotaryDial() {
+  function closeRotaryDial() {
+    clearTimeout(rotaryHideTimer);
     const dial = document.getElementById('lyrics-rotary-dial');
+    const btn = document.getElementById('lyrics-btn-dial-toggle');
     if (!dial) return;
+
+    isRotaryOpen = false;
+    if (btn) btn.classList.remove('is-active');
+
     if (typeof gsap !== 'undefined') {
       gsap.killTweensOf(dial);
       gsap.to(dial, {
         opacity: 0,
-        x: -20,
-        scale: 0.94,
-        duration: 0.35,
+        x: -24,
+        scale: 0.92,
+        duration: 0.3,
         ease: "power2.in",
         onComplete: () => {
-          dial.classList.remove('is-visible');
+          dial.classList.remove('is-open');
         }
       });
     } else {
-      dial.classList.remove('is-visible');
+      dial.classList.remove('is-open');
     }
+  }
+
+  function toggleRotaryDial() {
+    if (isRotaryOpen) {
+      closeRotaryDial();
+    } else {
+      openRotaryDial();
+    }
+  }
+
+  function scheduleRotaryDialClose(delayMs = 1200) {
+    clearTimeout(rotaryHideTimer);
+    rotaryHideTimer = setTimeout(() => {
+      if (isRotaryOpen && !isRotaryDragging) {
+        closeRotaryDial();
+      }
+    }, delayMs);
   }
 
   function initRotaryDialInteractions() {
     const dial = document.getElementById('lyrics-rotary-dial');
+    const toggleBtn = document.getElementById('lyrics-btn-dial-toggle');
     const viewport = dial ? dial.querySelector('.rotary-disc-viewport') : null;
-    if (!viewport) return;
 
-    // Wheel drag interaction to switch tracks with tactile click feel
-    viewport.addEventListener('pointerdown', (e) => {
-      isRotaryDragging = true;
-      rotaryDragStartY = e.clientY;
-      rotaryDragStartAngle = rotaryDialAngle;
-      viewport.setPointerCapture(e.pointerId);
-    });
+    if (toggleBtn) {
+      // Click or Tap toggle button to open/close
+      toggleBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleRotaryDial();
+      });
 
-    viewport.addEventListener('pointermove', (e) => {
-      if (!isRotaryDragging) return;
-      const deltaY = e.clientY - rotaryDragStartY;
-      const allSongs = (typeof SONGS !== 'undefined' ? SONGS : window.SONGS) || [];
-      if (Math.abs(deltaY) > 30 && allSongs.length > 0) {
-        const dir = deltaY > 0 ? 1 : -1;
-        const curIdx = getActiveIndex();
-        const nextIdx = (curIdx + dir + allSongs.length) % allSongs.length;
-        rotaryDragStartY = e.clientY;
-        if (typeof playSongEndScrollAnimation === 'function') {
-          playSongEndScrollAnimation(dir, () => {
-            if (typeof selectSong === 'function') selectSong(nextIdx, true);
-          });
-        } else if (typeof selectSong === 'function') {
-          selectSong(nextIdx, true);
+      // Hovering on the dial toggle button opens the dial
+      toggleBtn.addEventListener('mouseenter', () => {
+        openRotaryDial();
+      });
+      toggleBtn.addEventListener('mouseleave', () => {
+        scheduleRotaryDialClose(1800);
+      });
+    }
+
+    if (dial) {
+      // Hovering inside the dial maintains visibility
+      dial.addEventListener('mouseenter', () => {
+        clearTimeout(rotaryHideTimer);
+      });
+      dial.addEventListener('mouseleave', () => {
+        scheduleRotaryDialClose(1200);
+      });
+
+      // Smooth scroll through songs with mouse wheel directly inside dial (Animation Gallery style)
+      dial.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        clearTimeout(rotaryHideTimer);
+
+        rotaryAccumulatedDelta += e.deltaY;
+        const threshold = 48; // Responsive threshold for smooth stepped scrub
+
+        if (Math.abs(rotaryAccumulatedDelta) >= threshold) {
+          const dir = rotaryAccumulatedDelta > 0 ? 1 : -1;
+          rotaryAccumulatedDelta = 0;
+          const allSongs = (typeof SONGS !== 'undefined' ? SONGS : window.SONGS) || [];
+          if (allSongs.length > 0) {
+            const curIdx = getActiveIndex();
+            const nextIdx = (curIdx + dir + allSongs.length) % allSongs.length;
+            if (typeof playSongEndScrollAnimation === 'function') {
+              playSongEndScrollAnimation(dir, () => {
+                if (typeof selectSong === 'function') selectSong(nextIdx, true);
+              });
+            } else if (typeof selectSong === 'function') {
+              selectSong(nextIdx, true);
+            }
+          }
         }
-      }
-    });
+      }, { passive: false });
+    }
 
-    const stopDrag = (e) => {
-      if (isRotaryDragging) {
-        isRotaryDragging = false;
-        try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
-      }
-    };
-    viewport.addEventListener('pointerup', stopDrag);
-    viewport.addEventListener('pointercancel', stopDrag);
+    if (viewport) {
+      // Tactile Drag & Flick interaction
+      viewport.addEventListener('pointerdown', (e) => {
+        isRotaryDragging = true;
+        rotaryDragStartY = e.clientY;
+        clearTimeout(rotaryHideTimer);
+        try { viewport.setPointerCapture(e.pointerId); } catch (_) {}
+      });
+
+      viewport.addEventListener('pointermove', (e) => {
+        if (!isRotaryDragging) return;
+        const deltaY = e.clientY - rotaryDragStartY;
+        const allSongs = (typeof SONGS !== 'undefined' ? SONGS : window.SONGS) || [];
+        if (Math.abs(deltaY) > 36 && allSongs.length > 0) {
+          const dir = deltaY > 0 ? 1 : -1;
+          const curIdx = getActiveIndex();
+          const nextIdx = (curIdx + dir + allSongs.length) % allSongs.length;
+          rotaryDragStartY = e.clientY;
+          if (typeof playSongEndScrollAnimation === 'function') {
+            playSongEndScrollAnimation(dir, () => {
+              if (typeof selectSong === 'function') selectSong(nextIdx, true);
+            });
+          } else if (typeof selectSong === 'function') {
+            selectSong(nextIdx, true);
+          }
+        }
+      });
+
+      const stopDrag = (e) => {
+        if (isRotaryDragging) {
+          isRotaryDragging = false;
+          try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
+          scheduleRotaryDialClose(2000);
+        }
+      };
+      viewport.addEventListener('pointerup', stopDrag);
+      viewport.addEventListener('pointercancel', stopDrag);
+    }
   }
 
   // Attach button and keyboard listeners
@@ -1299,8 +1394,14 @@
         return;
       }
 
-      // If in lyrics mode, allow quick keyboard controls (Space, Left/Right arrow)
+      // If in lyrics mode, allow quick keyboard controls (Space, Left/Right arrow, D to toggle Dial)
       if (isLyricsMode) {
+        if (e.key === 'd' || e.key === 'D') {
+          e.preventDefault();
+          toggleRotaryDial();
+          return;
+        }
+
         const audio = document.getElementById('real-audio-player');
         if (e.key === ' ' || e.code === 'Space') {
           e.preventDefault();
