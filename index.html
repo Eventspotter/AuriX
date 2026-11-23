@@ -726,6 +726,7 @@
       border-radius: 40px;
       border: 1px solid rgba(0, 0, 0, 0.08);
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+      transform-origin: center center;
     }
 
     .play-trigger {
@@ -833,10 +834,7 @@
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
     }
     .lyrics-toggle-btn.is-active {
-      background: #111111;
-      color: #ffffff;
-      border-color: #111111;
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+      display: none;
     }
     .lyrics-toggle-btn .lyrics-icon {
       width: 16px;
@@ -860,15 +858,100 @@
       font-weight: 600;
       margin-left: 2px;
     }
-    .lyrics-toggle-btn.is-active .lyrics-badge {
-      background: rgba(255, 255, 255, 0.22);
+
+    /* Lyrics Bottom Dock Controls (Replaces Lyrics button in Lyrics Mode) */
+    .lyrics-dock-controls {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      padding: 6px 10px;
+      border-radius: 40px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    .lyrics-dock-controls.is-visible {
+      display: flex;
+    }
+    .lyrics-ctrl-divider {
+      width: 1px;
+      height: 20px;
+      background: rgba(0, 0, 0, 0.1);
+      margin: 0 3px;
+    }
+    .lyrics-ctrl-btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: #111;
+      cursor: pointer;
+      outline: none;
+      transition: background 0.2s cubic-bezier(0.25, 1, 0.5, 1), transform 0.15s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s;
+    }
+    .lyrics-ctrl-btn:hover {
+      background: rgba(0, 0, 0, 0.08);
+      transform: scale(1.05);
+    }
+    .lyrics-ctrl-btn:active {
+      transform: scale(0.95);
+    }
+    .lyrics-ctrl-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+    .lyrics-ctrl-btn .ctrl-subtext {
+      position: absolute;
+      bottom: 2px;
+      font-size: 0.5rem;
+      font-weight: 700;
+      font-family: var(--font-sans);
+      line-height: 1;
+      letter-spacing: -0.02em;
+      opacity: 0.75;
+      pointer-events: none;
+    }
+    .lyrics-ctrl-btn--play {
+      width: 38px;
+      height: 38px;
+      background: #111;
+      color: #fff;
+    }
+    .lyrics-ctrl-btn--play:hover {
+      background: #2a2a2a;
+      transform: scale(1.06);
+    }
+    .lyrics-ctrl-btn--play svg {
+      width: 16px;
+      height: 16px;
+    }
+    .lyrics-ctrl-btn--close {
+      width: 32px;
+      height: 32px;
+      color: rgba(0, 0, 0, 0.5);
+    }
+    .lyrics-ctrl-btn--close:hover {
+      background: rgba(0, 0, 0, 0.08);
+      color: #111;
+    }
+    .lyrics-ctrl-btn--close svg {
+      width: 16px;
+      height: 16px;
     }
 
     .lyrics-view {
       position: absolute;
       top: 64px;
       right: 48px;
-      bottom: 104px;
+      bottom: 110px;
       width: min(540px, 46vw);
       max-width: calc(100vw - 96px);
       z-index: 30;
@@ -895,7 +978,10 @@
       margin-bottom: 20px;
       flex-shrink: 0;
       border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-      padding-bottom: 12px;
+      padding-bottom: 14px;
+    }
+    .lyrics-header-meta {
+      width: 100%;
     }
     .lyrics-header-eyebrow {
       font-family: var(--font-sans);
@@ -915,12 +1001,18 @@
       text-transform: uppercase;
       margin: 0 0 4px 0;
       color: #111;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .lyrics-header-artist {
       font-size: 0.95rem;
       opacity: 0.6;
       font-family: var(--font-sans);
       font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .lyrics-scroller-viewport {
@@ -1594,8 +1686,8 @@
     </div>
   </div>
 
-  <!-- Floating Lyrics Button (Lower-Right Corner) -->
-  <div class="lyrics-dock">
+  <!-- Floating Lyrics Button & Bottom Control Dock (Lower-Right Corner) -->
+  <div class="lyrics-dock" id="lyrics-dock">
     <button class="lyrics-toggle-btn" id="lyrics-toggle-btn" title="Toggle Synchronized Lyrics (L)" aria-label="Toggle Lyrics">
       <span class="lyrics-icon">
         <svg viewBox="0 0 24 24">
@@ -1605,14 +1697,54 @@
       <span>Lyrics</span>
       <span class="lyrics-badge">L</span>
     </button>
+
+    <!-- Transport Control Panel (seamlessly replaces the lyrics button when lyrics are open) -->
+    <div class="lyrics-dock-controls" id="lyrics-controls" aria-label="Lyrics Playback Controls">
+      <button class="lyrics-ctrl-btn" id="lyrics-btn-prev-song" title="Previous Song" aria-label="Previous Song">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+        </svg>
+      </button>
+      <button class="lyrics-ctrl-btn" id="lyrics-btn-backward" title="Rewind 10s (Left Arrow)" aria-label="Rewind 10 seconds">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.2 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/>
+        </svg>
+        <span class="ctrl-subtext">10s</span>
+      </button>
+      <button class="lyrics-ctrl-btn lyrics-ctrl-btn--play" id="lyrics-btn-play" title="Play/Pause (Space)" aria-label="Play or Pause">
+        <svg id="lyrics-play-svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      </button>
+      <button class="lyrics-ctrl-btn" id="lyrics-btn-forward" title="Forward 10s (Right Arrow)" aria-label="Forward 10 seconds">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11.5 8c2.65 0 5.05.99 6.9 2.6L22 7v9h-9l3.62-3.62c-1.39-1.2-3.16-1.88-5.12-1.88-3.54 0-6.55 2.31-7.6 5.5l-2.37-.78C2.92 11.03 6.85 8 11.5 8z"/>
+        </svg>
+        <span class="ctrl-subtext">10s</span>
+      </button>
+      <button class="lyrics-ctrl-btn" id="lyrics-btn-next-song" title="Next Song" aria-label="Next Song">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+        </svg>
+      </button>
+      <div class="lyrics-ctrl-divider"></div>
+      <button class="lyrics-ctrl-btn lyrics-ctrl-btn--close" id="lyrics-btn-close" title="Exit Lyrics Mode (L)" aria-label="Exit Lyrics Mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <!-- Apple Music / BetterLyrics Fluid Synchronized Lyrics View -->
   <aside class="lyrics-view" id="lyrics-view" aria-hidden="true" aria-label="Synchronized Song Lyrics">
     <div class="lyrics-header">
-      <div class="lyrics-header-eyebrow" id="lyrics-header-album">ALBUM</div>
-      <h2 class="lyrics-header-title" id="lyrics-header-title">CHERRY WAVES</h2>
-      <div class="lyrics-header-artist" id="lyrics-header-artist">Deftones</div>
+      <div class="lyrics-header-meta">
+        <div class="lyrics-header-eyebrow" id="lyrics-header-album">ALBUM</div>
+        <h2 class="lyrics-header-title" id="lyrics-header-title">CHERRY WAVES</h2>
+        <div class="lyrics-header-artist" id="lyrics-header-artist">Deftones</div>
+      </div>
     </div>
 
     <div class="lyrics-scroller-viewport">
@@ -1743,17 +1875,18 @@
   </div>
 
   <!-- Modular AuriX Audio & 3D WebGL Engine -->
-  <script src="./js/state.js?v=7"></script>
-  <script src="./js/lyrics-data.js?v=7"></script>
-  <script src="./js/navigation.js?v=7"></script>
-  <script src="./js/audio-player.js?v=7"></script>
-  <script src="./js/cd-scene.js?v=7"></script>
-  <script src="./js/scribble.js?v=7"></script>
-  <script src="./js/lyrics.js?v=7"></script>
-  <script src="./js/reviews.js?v=7"></script>
-  <script src="./js/carousel.js?v=7"></script>
-  <script src="./js/interactions.js?v=7"></script>
-  <script src="./js/add-song.js?v=7"></script>
-  <script src="./js/main.js?v=7"></script>
+  <script src="./js/anime.min.js"></script>
+  <script src="./js/state.js?v=8"></script>
+  <script src="./js/lyrics-data.js?v=8"></script>
+  <script src="./js/navigation.js?v=8"></script>
+  <script src="./js/audio-player.js?v=8"></script>
+  <script src="./js/cd-scene.js?v=8"></script>
+  <script src="./js/scribble.js?v=8"></script>
+  <script src="./js/lyrics.js?v=8"></script>
+  <script src="./js/reviews.js?v=8"></script>
+  <script src="./js/carousel.js?v=8"></script>
+  <script src="./js/interactions.js?v=8"></script>
+  <script src="./js/add-song.js?v=8"></script>
+  <script src="./js/main.js?v=8"></script>
 </body>
 </html>

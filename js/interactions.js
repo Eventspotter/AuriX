@@ -223,6 +223,23 @@ function triggerWheelStep(direction, delta, now) {
   wheelStepCount = 0;
   wheelStepPeak = delta;
 
+  if (window.isLyricsMode) {
+    if (typeof SONGS !== 'undefined' && SONGS.length) {
+      const current = typeof activeIndex !== 'undefined' ? activeIndex : 0;
+      const next = (current + direction + SONGS.length) % SONGS.length;
+      if (next !== current) {
+        if (typeof window.playSongEndScrollAnimation === 'function') {
+          window.playSongEndScrollAnimation(direction, () => {
+            if (typeof selectSong === 'function') selectSong(next, true, { source: 'wheel' });
+          });
+        } else if (typeof selectSong === 'function') {
+          selectSong(next, true, { source: 'wheel' });
+        }
+      }
+    }
+    return;
+  }
+
   const current = getCarouselTargetIndex();
   const next = Math.max(0, Math.min(SONGS.length - 1, current + direction));
   if (next !== current) {
@@ -232,7 +249,6 @@ function triggerWheelStep(direction, delta, now) {
 
 window.addEventListener('wheel', (e) => {
   if (e.ctrlKey) return;
-  if (window.isLyricsMode) return;
   if (isDropdownOpen || e.target.closest('.nav-dropdown') || e.target.closest('.lyrics-view') || e.target.closest('.lyrics-dock')) return;
 
   isPointerOverCanvas = true;

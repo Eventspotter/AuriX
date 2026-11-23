@@ -245,8 +245,14 @@
       scroller.appendChild(lineEl);
     });
 
+    isSongEndAnimating = false;
+    if (typeof anime !== 'undefined') {
+      anime.remove(scroller);
+    }
+
     // Reset scroller position
     if (typeof gsap !== 'undefined') {
+      gsap.killTweensOf(scroller);
       gsap.set(scroller, { y: 0 });
     } else {
       scroller.style.transform = 'translateY(0px)';
@@ -311,7 +317,7 @@
      (Apple Music / BetterLyrics style karaoke illumination)
      -------------------------------------------------------- */
   function updateLyricsTime(currentTime, instant = false) {
-    if (!isLyricsMode || !currentLyricLines || !currentLyricLines.length) return;
+    if (!isLyricsMode || !currentLyricLines || !currentLyricLines.length || isSongEndAnimating) return;
 
     // Determine current active lyric line (with slight 0.08s anticipation)
     const playTime = currentTime + 0.08;
@@ -363,15 +369,19 @@
           // Apple Music focal position: roughly 38% from top of viewport
           const targetScroll = Math.max(0, lineTop - (viewportHeight * 0.38) + (lineHeight / 2));
 
-          if (instant || typeof gsap === 'undefined') {
+          if (instant || typeof anime === 'undefined') {
+            if (typeof gsap !== 'undefined') {
+              gsap.killTweensOf(scroller);
+            }
             scroller.style.transform = `translateY(${-targetScroll}px)`;
           } else {
-            // Fluid spring-like ease for organic Apple Music feel
-            gsap.to(scroller, {
-              y: -targetScroll,
-              duration: 0.68,
-              ease: "power2.out",
-              overwrite: "auto"
+            // Silky smooth Anime.js spring/cubic bezier interpolation
+            anime.remove(scroller);
+            anime({
+              targets: scroller,
+              translateY: -targetScroll,
+              duration: 900,
+              easing: 'cubicBezier(0.16, 1, 0.3, 1)'
             });
           }
         }
@@ -423,10 +433,187 @@
 
   /* 60 FPS Fluid Lyrics Animation Loop */
   let lyricsLoopId = null;
+  let isSongEndAnimating = false;
+  let activeTransitionTimeline = null;
+
+  function playSongEndScrollAnimation(direction = 1, callback) {
+    if (typeof direction === 'function') {
+      callback = direction;
+      direction = 1;
+    }
+
+    if (!isLyricsMode) {
+      if (typeof callback === 'function') callback();
+      return;
+    }
+
+    // If an animation is already in progress, swiftly finish or reset to prevent getting stuck
+    if (isSongEndAnimating && activeTransitionTimeline) {
+      try {
+        if (typeof anime !== 'undefined') anime.remove('#lyrics-scroller');
+        activeTransitionTimeline.pause();
+        activeTransitionTimeline = null;
+      } catch (e) {}
+      isSongEndAnimating = false;
+    }
+
+    isSongEndAnimating = true;
+
+    const meshes = window.discMeshes || (typeof discMeshes !== 'undefined' ? discMeshes : []);
+    const N = meshes.length;
+    const activeIdx = getActiveIndex();
+    const targetIdx = (direction >= 0) ? ((activeIdx + 1) % N) : ((activeIdx - 1 + N) % N);
+    const activeMesh = meshes[activeIdx];
+    const nextMesh = meshes[targetIdx];
+
+    const scroller = document.getElementById('lyrics-scroller');
+    const allLineEls = scroller ? Array.from(scroller.querySelectorAll('.lyric-line')) : [];
+    const viewport = scroller ? scroller.parentElement : null;
+    const viewportH = viewport ? viewport.clientHeight : 500;
+    const currentY = scroller ? (gsap.getProperty(scroller, "y") || 0) : 0;
+    const endTargetY = (direction >= 0)
+      ? currentY - (scroller ? scroller.scrollHeight * 0.45 : 250)
+      : Math.min(0, currentY + (scroller ? scroller.scrollHeight * 0.45 : 250));
+
+    // Clean sequential animation without physical collision/overlapping:
+    // Outgoing CD swipes up (or down if prev) out of view, then incoming CD seamlessly rises into place
+    const animDuration = 0.50;
+    const outY = direction >= 0 ? 3.5 : -3.5;
+    const inStartY = direction >= 0 ? -3.2 : 3.2;
+
+    if (activeMesh && typeof gsap !== 'undefined') {
+      gsap.killTweensOf(activeMesh.position);
+      gsap.killTweensOf(activeMesh.rotation);
+      gsap.killTweensOf(activeMesh.scale);
+
+      gsap.to(activeMesh.position, {
+        y: outY,
+        z: 0.7,
+        duration: animDuration,
+        ease: "power2.in",
+        onComplete: () => {
+          activeMesh.visible = false;
+        }
+      });
+      gsap.to(activeMesh.rotation, {
+        x: direction >= 0 ? 0.35 : -0.35,
+        duration: animDuration,
+        ease: "power2.in"
+      });
+      gsap.to(activeMesh.scale, {
+        x: 0.9,
+        y: 0.9,
+        z: 0.9,
+        duration: animDuration,
+        ease: "power2.in"
+      });
+    }
+
+    if (nextMesh && N > 1 && typeof gsap !== 'undefined') {
+      gsap.killTweensOf(nextMesh.position);
+      gsap.killTweensOf(nextMesh.rotation);
+      gsap.killTweensOf(nextMesh.scale);
+
+      // Start cleanly outside the viewport border
+      nextMesh.position.set(0, inStartY, 0.5);
+      nextMesh.rotation.set(direction >= 0 ? -0.25 : 0.25, 0, 0);
+      nextMesh.scale.set(0.92, 0.92, 0.92);
+
+      // Trigger entrance once outgoing CD has cleared the stack area (no overlap)
+      gsap.to(nextMesh.position, {
+        x: 0,
+        y: 0,
+        z: 0.5,
+        duration: animDuration,
+        ease: "power3.out",
+        delay: animDuration * 0.68,
+        onStart: () => {
+          nextMesh.visible = true;
+        }
+      });
+      gsap.to(nextMesh.rotation, {
+        x: 0,
+        y: 0,
+        z: 0,
+        duration: animDuration,
+        ease: "power3.out",
+        delay: animDuration * 0.68
+      });
+      gsap.to(nextMesh.scale, {
+        x: 1.0,
+        y: 1.0,
+        z: 1.0,
+        duration: animDuration,
+        ease: "power3.out",
+        delay: animDuration * 0.68
+      });
+    }
+
+    const onTransitionEnd = () => {
+      isSongEndAnimating = false;
+      activeTransitionTimeline = null;
+      if (typeof callback === 'function') callback();
+    };
+
+    if (typeof anime !== 'undefined' && scroller) {
+      // Use anime.js for a silky seamless scroll cascade
+      anime.remove(scroller);
+      if (allLineEls.length) {
+        anime.remove(allLineEls);
+      }
+
+      const timeline = anime.timeline({
+        easing: 'cubicBezier(0.16, 1, 0.3, 1)',
+        complete: onTransitionEnd
+      });
+      activeTransitionTimeline = timeline;
+
+      // 1. Smoothly scroll lyrics container
+      timeline.add({
+        targets: scroller,
+        translateY: [currentY, endTargetY],
+        duration: 780
+      }, 0);
+
+      // 2. Cascade lines with soft blur & gentle opacity fade
+      if (allLineEls.length) {
+        timeline.add({
+          targets: allLineEls,
+          opacity: [
+            { value: (el) => parseFloat(window.getComputedStyle(el).opacity) || 0.4, duration: 0 },
+            { value: 0.08, duration: 550, delay: anime.stagger(12) }
+          ],
+          translateY: [
+            { value: 0, duration: 0 },
+            { value: direction >= 0 ? 20 : -20, duration: 650, delay: anime.stagger(15) }
+          ],
+          filter: [
+            { value: 'blur(4px)', duration: 650, delay: anime.stagger(12) }
+          ]
+        }, 50);
+      }
+    } else if (typeof gsap !== 'undefined') {
+      if (scroller) {
+        gsap.killTweensOf(scroller);
+        gsap.to(scroller, {
+          y: endTargetY,
+          duration: 0.78,
+          ease: 'power3.inOut',
+          onComplete: onTransitionEnd
+        });
+      } else {
+        setTimeout(onTransitionEnd, 780);
+      }
+    } else {
+      onTransitionEnd();
+    }
+  }
+  window.playSongEndScrollAnimation = playSongEndScrollAnimation;
+
   function startLyricsLoop() {
     if (lyricsLoopId) return;
     function loop() {
-      if (isLyricsMode) {
+      if (isLyricsMode && !isSongEndAnimating) {
         const audio = document.getElementById('real-audio-player');
         if (audio && !audio.paused) {
           updateLyricsTime(audio.currentTime, false);
@@ -745,17 +932,48 @@
     window.isLyricsMode = isLyricsMode;
 
     const lyricsBtn = document.getElementById('lyrics-toggle-btn');
+    const lyricsControls = document.getElementById('lyrics-controls');
+    const audioDock = document.querySelector('.audio-player-dock');
+    const lyricsDock = document.getElementById('lyrics-dock');
     const lyricsView = document.getElementById('lyrics-view');
     const reviews = document.querySelector('.reviews-container');
-
-    if (lyricsBtn) {
-      lyricsBtn.classList.toggle('is-active', isLyricsMode);
-    }
 
     if (isLyricsMode) {
       // 1. Enter Lyrics Mode: animate discs to stack & start 60FPS fluid sync loop
       startLyricsLoop();
       animateDiscsToStack(true);
+
+      // Smooth slide from left player dock across to right lyrics dock, converting into control menu
+      if (audioDock && lyricsDock && typeof gsap !== 'undefined') {
+        const audioRect = audioDock.getBoundingClientRect();
+        const lyricsRect = lyricsDock.getBoundingClientRect();
+        const deltaX = (lyricsRect.left + lyricsRect.width / 2) - (audioRect.left + audioRect.width / 2);
+
+        gsap.killTweensOf(audioDock);
+        gsap.to(audioDock, {
+          x: deltaX,
+          opacity: 0,
+          scale: 0.95,
+          duration: 0.55,
+          ease: "power3.inOut",
+          onComplete: () => {
+            audioDock.style.visibility = 'hidden';
+          }
+        });
+
+        if (lyricsBtn) lyricsBtn.classList.add('is-active');
+        if (lyricsControls) {
+          lyricsControls.classList.add('is-visible');
+          gsap.fromTo(lyricsControls,
+            { x: -40, opacity: 0, scale: 0.92 },
+            { x: 0, opacity: 1, scale: 1, duration: 0.55, ease: "power3.out", delay: 0.15 }
+          );
+        }
+      } else {
+        if (audioDock) audioDock.style.visibility = 'hidden';
+        if (lyricsBtn) lyricsBtn.classList.add('is-active');
+        if (lyricsControls) lyricsControls.classList.add('is-visible');
+      }
 
       // 2. Animate Lyrics View into view
       if (lyricsView) {
@@ -808,6 +1026,41 @@
       // 1. Exit Lyrics Mode: stop loop & restore horizontal ribbon arc
       stopLyricsLoop();
       animateDiscsToCarousel(true);
+
+      // Smooth slide control menu back to left and restore bottom-left audio player dock
+      if (audioDock && lyricsDock && typeof gsap !== 'undefined') {
+        if (lyricsControls) {
+          gsap.to(lyricsControls, {
+            opacity: 0,
+            scale: 0.92,
+            duration: 0.3,
+            ease: "power2.in",
+            onComplete: () => {
+              lyricsControls.classList.remove('is-visible');
+              if (lyricsBtn) lyricsBtn.classList.remove('is-active');
+            }
+          });
+        }
+
+        audioDock.style.visibility = 'visible';
+        gsap.killTweensOf(audioDock);
+        gsap.to(audioDock, {
+          x: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 0.6,
+          ease: "power3.out",
+          delay: 0.1
+        });
+      } else {
+        if (lyricsControls) lyricsControls.classList.remove('is-visible');
+        if (lyricsBtn) lyricsBtn.classList.remove('is-active');
+        if (audioDock) {
+          audioDock.style.visibility = 'visible';
+          audioDock.style.transform = 'none';
+          audioDock.style.opacity = '1';
+        }
+      }
 
       // 2. Animate Lyrics View out
       if (lyricsView) {
@@ -865,14 +1118,125 @@
       });
     }
 
-    // Keyboard shortcut: 'L' toggles lyrics mode
+    // Keyboard shortcuts in lyrics mode:
     window.addEventListener('keydown', (e) => {
       // Ignore if user is currently typing in an input
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
       if (e.key === 'l' || e.key === 'L') {
         toggleLyricsMode();
+        return;
+      }
+
+      // If in lyrics mode, allow quick keyboard controls (Space, Left/Right arrow)
+      if (isLyricsMode) {
+        const audio = document.getElementById('real-audio-player');
+        if (e.key === ' ' || e.code === 'Space') {
+          e.preventDefault();
+          if (audio) {
+            if (audio.paused) {
+              audio.play().catch(console.error);
+            } else {
+              audio.pause();
+            }
+          }
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          if (audio) {
+            seekAudioToTime(Math.max(0, audio.currentTime - 10));
+          }
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          if (audio) {
+            seekAudioToTime(Math.min(audio.duration || Infinity, audio.currentTime + 10));
+          }
+        }
       }
     });
+
+    // Integrated transport controls in lyrics header
+    const backwardBtn = document.getElementById('lyrics-btn-backward');
+    const forwardBtn = document.getElementById('lyrics-btn-forward');
+    const lyricsPlayBtn = document.getElementById('lyrics-btn-play');
+    const prevSongBtn = document.getElementById('lyrics-btn-prev-song');
+    const nextSongBtn = document.getElementById('lyrics-btn-next-song');
+    const closeBtn = document.getElementById('lyrics-btn-close');
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleLyricsMode();
+      });
+    }
+
+    if (backwardBtn) {
+      backwardBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const audio = document.getElementById('real-audio-player');
+        if (audio) {
+          seekAudioToTime(Math.max(0, audio.currentTime - 10));
+        }
+      });
+    }
+
+    if (forwardBtn) {
+      forwardBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const audio = document.getElementById('real-audio-player');
+        if (audio) {
+          seekAudioToTime(Math.min(audio.duration || Infinity, audio.currentTime + 10));
+        }
+      });
+    }
+
+    if (lyricsPlayBtn) {
+      lyricsPlayBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const audio = document.getElementById('real-audio-player');
+        if (!audio) return;
+        if (audio.paused) {
+          audio.play().catch(console.error);
+        } else {
+          audio.pause();
+        }
+      });
+    }
+
+    if (prevSongBtn) {
+      prevSongBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (typeof SONGS !== 'undefined' && SONGS.length) {
+          const prev = (getActiveIndex() - 1 + SONGS.length) % SONGS.length;
+          if (typeof playSongEndScrollAnimation === 'function') {
+            playSongEndScrollAnimation(-1, () => {
+              if (typeof selectSong === 'function') {
+                selectSong(prev, true);
+              }
+            });
+          } else if (typeof selectSong === 'function') {
+            selectSong(prev, true);
+          }
+        }
+      });
+    }
+
+    if (nextSongBtn) {
+      nextSongBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (typeof SONGS !== 'undefined' && SONGS.length) {
+          const next = (getActiveIndex() + 1) % SONGS.length;
+          if (typeof playSongEndScrollAnimation === 'function') {
+            playSongEndScrollAnimation(1, () => {
+              if (typeof selectSong === 'function') {
+                selectSong(next, true);
+              }
+            });
+          } else if (typeof selectSong === 'function') {
+            selectSong(next, true);
+          }
+        }
+      });
+    }
   }
 
   if (document.readyState === 'loading') {

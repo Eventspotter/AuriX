@@ -186,6 +186,14 @@ function setPlayState(playing) {
       ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>' // Pause icon
       : '<path d="M8 5v14l11-7z"/>';                  // Play icon
   }
+  const lyricsPlaySvg = document.getElementById('lyrics-play-svg');
+  const lyricsPlayBtn = document.getElementById('lyrics-btn-play');
+  if (lyricsPlayBtn) lyricsPlayBtn.classList.toggle('is-playing', playing);
+  if (lyricsPlaySvg) {
+    lyricsPlaySvg.innerHTML = playing
+      ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
+      : '<path d="M8 5v14l11-7z"/>';
+  }
   if ('mediaSession' in navigator) {
     navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
     updateMediaSessionPositionState();
@@ -229,7 +237,13 @@ if (audio) {
   });
 
   audio.addEventListener('ended', () => {
-    if (typeof selectSong === 'function') {
+    if (window.isLyricsMode && typeof window.playSongEndScrollAnimation === 'function') {
+      window.playSongEndScrollAnimation(() => {
+        if (typeof selectSong === 'function') {
+          selectSong((activeIndex + 1) % SONGS.length, true);
+        }
+      });
+    } else if (typeof selectSong === 'function') {
       selectSong((activeIndex + 1) % SONGS.length, true);
     }
   });
