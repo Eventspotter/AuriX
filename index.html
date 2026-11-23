@@ -986,22 +986,24 @@
     /* Word-Level Synchronized Animation (Apple Music / BetterLyrics Style) */
     .lyric-word {
       display: inline-block;
+      margin-right: 0.28em;
       cursor: pointer;
       pointer-events: auto;
       color: #111111;
       opacity: 0.28;
-      filter: blur(0.8px);
-      transform: scale(0.98);
-      transform-origin: left bottom;
+      filter: blur(0.6px);
+      transform: scale(0.99);
+      transform-origin: 50% 50%;
       --word-progress: 0%;
-      /* Snappy pop-up transition for instant, crisp vocal onset */
-      transition: transform 0.08s cubic-bezier(0.18, 0.89, 0.32, 1.28),
-                  filter 0.12s ease-out;
+      /* Butter-smooth, silky transition from the exact visual center */
+      transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1),
+                  opacity 0.2s ease-out,
+                  filter 0.2s ease-out;
     }
     .lyric-word:hover {
       opacity: 1.0 !important;
       filter: blur(0px) !important;
-      transform: scale(1.05) !important;
+      transform: scale(1.03) !important;
       color: #000000 !important;
       text-decoration: underline;
       text-decoration-thickness: 1.5px;
@@ -1022,9 +1024,9 @@
     /* In active line: word actively being vocalized right now (BetterLyrics progressive fill & sustained glow) */
     .lyric-line.is-active .lyric-word.is-current-word {
       filter: blur(0px);
-      font-weight: 750;
+      font-weight: 700;
       color: #000000;
-      transform: scale(1.06) translateY(-0.5px);
+      transform: scale(1.025);
       background: linear-gradient(
         90deg,
         #000000 0%,
@@ -1040,8 +1042,8 @@
     /* In active line: upcoming words not yet sung */
     .lyric-line.is-active .lyric-word.is-unsung {
       opacity: 0.28;
-      filter: blur(0.7px);
-      transform: scale(0.98);
+      filter: blur(0.6px);
+      transform: scale(0.99);
       background: none;
       -webkit-text-fill-color: initial;
     }
@@ -1755,17 +1757,17 @@
   </div>
 
   <!-- Modular AuriX Audio & 3D WebGL Engine -->
-  <script src="./js/state.js?v=5"></script>
-  <script src="./js/lyrics-data.js?v=5"></script>
-  <script src="./js/navigation.js?v=5"></script>
-  <script src="./js/audio-player.js?v=5"></script>
-  <script src="./js/cd-scene.js?v=5"></script>
-  <script src="./js/scribble.js?v=5"></script>
-  <script src="./js/lyrics.js?v=5"></script>
-  <script src="./js/reviews.js?v=5"></script>
-  <script src="./js/carousel.js?v=5"></script>
-  <script src="./js/interactions.js?v=5"></script>
-  <script src="./js/add-song.js?v=5"></script>
-  <script src="./js/main.js?v=5"></script>
+  <script src="./js/state.js?v=6"></script>
+  <script src="./js/lyrics-data.js?v=6"></script>
+  <script src="./js/navigation.js?v=6"></script>
+  <script src="./js/audio-player.js?v=6"></script>
+  <script src="./js/cd-scene.js?v=6"></script>
+  <script src="./js/scribble.js?v=6"></script>
+  <script src="./js/lyrics.js?v=6"></script>
+  <script src="./js/reviews.js?v=6"></script>
+  <script src="./js/carousel.js?v=6"></script>
+  <script src="./js/interactions.js?v=6"></script>
+  <script src="./js/add-song.js?v=6"></script>
+  <script src="./js/main.js?v=6"></script>
 </body>
 </html>

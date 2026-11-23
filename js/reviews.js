@@ -157,7 +157,9 @@ function updateHUDReviews(reviews, animate = true) {
   if (!reviews || !reviews.length) return;
 
   const r1 = reviews[0] || { pub: 'AURIX SELECTION', quote: 'AN IMMERSIVE AUDIOPHILE SONIC EXPERIENCE' };
-  const r2 = reviews[1] || reviews[0] || { pub: 'MASTER TAPE', quote: 'PRISTINE ACOUSTIC CLARITY AND DYNAMIC RANGE' };
+  const r2 = (reviews.length > 1 && reviews[1].pub !== r1.pub)
+    ? reviews[1]
+    : { pub: 'MASTER TAPE', quote: 'PRISTINE ACOUSTIC CLARITY AND DYNAMIC RANGE' };
 
   const r1Pub = document.getElementById('rev1-pub');
   const r1Quote = document.getElementById('rev1-quote');
@@ -196,8 +198,8 @@ function updateHUDReviews(reviews, animate = true) {
 /**
  * Main entry point: Loads reviews for a given song.
  * 1. Checks memory cache
- * 2. Checks pre-bundled song.reviews
- * 3. Dynamically fetches real reviews from online sources
+ * 2. Checks pre-bundled song.reviews (curated editorial reviews from two different outlets)
+ * 3. Dynamically fetches online reception only for newly added custom tracks lacking reviews
  */
 async function fetchReviewsForSong(song) {
   if (!song) return;
@@ -210,17 +212,19 @@ async function fetchReviewsForSong(song) {
     return reviewsCache[key];
   }
 
-  // 2. If song has pre-bundled reviews, display them first
-  if (song.reviews && song.reviews.length) {
-    updateHUDReviews(song.reviews, false);
+  // 2. Curated reviews: If song already has curated reviews (different outlets & perfect length), use them directly!
+  if (song.reviews && song.reviews.length >= 2) {
+    reviewsCache[key] = song.reviews;
+    updateHUDReviews(song.reviews, true);
+    return song.reviews;
   }
 
-  // 3. Fetch online reviews asynchronously
+  // 3. If missing reviews (e.g. newly added custom song without review data), attempt online fetch
   try {
     const online = await fetchOnlineReviews(song.artist, song.title, song.album);
-    if (online && online.length) {
+    if (online && online.length >= 2) {
       reviewsCache[key] = online;
-      song.reviews = online; // persist to song in-memory
+      song.reviews = online;
       updateHUDReviews(online, true);
       return online;
     }
@@ -228,9 +232,10 @@ async function fetchReviewsForSong(song) {
     console.warn('[AuriX] Failed to fetch online reviews for song:', song.title, e);
   }
 
-  // Fallback to existing reviews
+  // Fallback to existing reviews or curated audiophile selection
   if (song.reviews && song.reviews.length) {
     reviewsCache[key] = song.reviews;
+    updateHUDReviews(song.reviews, true);
     return song.reviews;
   }
 

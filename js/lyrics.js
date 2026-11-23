@@ -75,32 +75,38 @@
         continue;
       }
 
-      // Natural vocal delivery:
-      // If there's an interval before next line, vocals span the phrase with breathing room
-      const vocalDuration = Math.max(0.7, Math.min(lineDuration * 0.86, Math.max(rawWords.length * 0.45, lineDuration - 0.5)));
-
-      // Weight words:
-      // - Standard characters: weight 1x
-      // - Punctuation / prolonged vowels (e.g. "?", "!", "...", "—", "~"): 2.2x
-      // - Trailing word in line: gets 2.5x weight to capture natural vocal sustain/held notes!
-      const weights = rawWords.map((w, idx) => {
-        const cleanLen = Math.max(1, Math.min(10, w.replace(/[^a-zA-Z0-9]/g, '').length));
-        let weight = cleanLen;
-        // Check for punctuation or vowel prolongation
+      // Natural human singing cadence:
+      // Words take ~0.24s base + 0.055s per letter, plus sustain for punctuation / vowel extensions
+      const wordBaseDurations = rawWords.map((w, idx) => {
+        const clean = w.replace(/[^a-zA-Z0-9]/g, '');
+        let dur = 0.24 + Math.min(clean.length, 8) * 0.055;
         if (/[?!.~—–\-]$/.test(w) || /[aeiouy]{2,}/i.test(w)) {
-          weight *= 2.2;
+          dur += 0.22;
         }
-        // Last word of the phrase is sustained by the singer
         if (idx === rawWords.length - 1) {
-          weight *= (rawWords.length === 1 ? 3.5 : 2.5);
+          if (rawWords.length === 1) {
+            dur = Math.min(3.5, Math.max(1.8, (lineDuration - 0.4) * 0.8));
+          } else {
+            dur += (/[?!.~—–\-]$/.test(w) ? 0.65 : 0.4);
+          }
         }
-        return weight;
+        return dur;
       });
-      const totalWeight = weights.reduce((sum, w) => sum + w, 0);
 
+      const estDuration = wordBaseDurations.reduce((sum, d) => sum + d, 0);
+      let vocalDuration;
+      if (lineDuration <= estDuration + 0.3) {
+        // Fast delivery or next lyric line starts immediately
+        vocalDuration = Math.max(0.6, lineDuration - 0.15);
+      } else {
+        // There is an instrumental gap or pause; finish vocal naturally without dragging
+        vocalDuration = Math.min(estDuration, lineDuration - 0.4);
+      }
+
+      const scale = vocalDuration / estDuration;
       let currentOffset = 0;
       line.words = rawWords.map((wordText, wIdx) => {
-        const duration = Math.max(0.12, (weights[wIdx] / totalWeight) * vocalDuration);
+        const duration = Math.max(0.12, wordBaseDurations[wIdx] * scale);
         const wordStart = line.time + currentOffset;
         const wordEnd = wordStart + duration;
         currentOffset += duration;
@@ -329,8 +335,8 @@
   function updateLyricsTime(currentTime, instant = false) {
     if (!isLyricsMode || !currentLyricLines || !currentLyricLines.length) return;
 
-    // Determine current active lyric line (with slight 0.08s anticipation)
-    const playTime = currentTime + 0.08;
+    // Determine current active lyric line (with precise 0.02s frame calibration)
+    const playTime = currentTime + 0.02;
     let activeIdx = -1;
 
     for (let i = 0; i < currentLyricLines.length; i++) {
@@ -417,7 +423,7 @@
     const wordEls = activeLineEl.querySelectorAll('.lyric-word');
     if (!wordEls.length) return;
 
-    const playTime = currentTime + 0.04;
+    const playTime = currentTime + 0.02;
 
     for (let k = 0; k < activeLine.words.length; k++) {
       const word = activeLine.words[k];
