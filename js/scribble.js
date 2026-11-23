@@ -116,10 +116,12 @@ function snapScribbleToTarget(targetMesh, instant = false) {
     scribbleGroup.position.copy(targetMesh.position);
     scribbleGroup.rotation.copy(targetMesh.rotation);
     scribbleGroup.scale.copy(targetMesh.scale);
+    scribbleGroup.updateMatrix();
   } else {
     scribbleGroup.position.lerp(targetMesh.position, 0.45);
     scribbleGroup.quaternion.slerp(targetMesh.quaternion, 0.45);
     scribbleGroup.scale.lerp(targetMesh.scale, 0.45);
+    scribbleGroup.rotation.setFromQuaternion(scribbleGroup.quaternion);
   }
 }
 
@@ -127,13 +129,18 @@ function updateScribbleAnimation(now) {
   const frameInterval = 1000 / scribbleConfig.fps;
   const isDue = (now - lastScribbleTime) >= frameInterval;
 
-  // Only the currently active / playing CD should display the scribble animation
-  const isTargetActive = (hoveredDiscIndex !== -1 && hoveredDiscIndex === activeIndex);
+  // Authentic A24 scribble outline display:
+  // 1. In lyrics mode: active disc ALWAYS displays the animated scribble outline
+  // 2. In carousel mode: only the currently active CD displays scribble when hovered
+  const inLyrics = !!window.isLyricsMode;
+  const isTargetActive = inLyrics || (hoveredDiscIndex !== -1 && hoveredDiscIndex === activeIndex);
 
-  // Is carousel currently in motion? (dragging or tweening or offset gliding)
-  const isMoving = (typeof isDragging !== 'undefined' && isDragging) ||
-                   (carouselTween && carouselTween.isActive()) ||
-                   Math.abs(carouselOffset - activeIndex) > 0.005;
+  // Is scene / carousel currently in motion? (dragging or tweening or offset gliding)
+  const isMoving = inLyrics
+    ? (typeof gsap !== 'undefined' && discMeshes[activeIndex] && (gsap.isTweening(discMeshes[activeIndex].position) || (typeof galleryGroup !== 'undefined' && gsap.isTweening(galleryGroup.position))))
+    : ((typeof isDragging !== 'undefined' && isDragging) ||
+       (carouselTween && carouselTween.isActive()) ||
+       Math.abs(carouselOffset - activeIndex) > 0.005);
 
   if (isTargetActive) {
     const targetMesh = discMeshes[activeIndex];
@@ -146,7 +153,7 @@ function updateScribbleAnimation(now) {
       refreshScribble(scribbleConfig.inSteps[0]);
       lastScribbleTime = now;
     } else {
-      snapScribbleToTarget(targetMesh, isMoving);
+      snapScribbleToTarget(targetMesh, isMoving || inLyrics);
 
       if (isDue) {
         lastScribbleTime = now;
@@ -189,3 +196,8 @@ function updateScribbleAnimation(now) {
     }
   }
 }
+
+window.scribbleGroup = scribbleGroup;
+window.snapScribbleToTarget = snapScribbleToTarget;
+window.refreshScribble = refreshScribble;
+window.updateScribbleAnimation = updateScribbleAnimation;

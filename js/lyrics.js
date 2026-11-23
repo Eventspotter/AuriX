@@ -603,7 +603,7 @@
 
     // Reposition scribble outline if active
     if (typeof snapScribbleToTarget === 'function' && meshes[activeIdx]) {
-      snapScribbleToTarget(meshes[activeIdx], false);
+      snapScribbleToTarget(meshes[activeIdx], true);
     }
   }
   window.animateDiscsToStack = animateDiscsToStack;
@@ -771,11 +771,35 @@
 
       // 3. Fade out top-left metadata and bottom reviews so left side is clean for 3D stack
       const heroInfo = document.querySelector('.hero-info-panel');
-      if (heroInfo && typeof gsap !== 'undefined') {
-        gsap.to(heroInfo, { opacity: 0, y: -15, duration: 0.4, overwrite: 'auto' });
+      if (heroInfo) {
+        if (typeof gsap !== 'undefined') {
+          gsap.to(heroInfo, { 
+            opacity: 0, 
+            y: -15, 
+            duration: 0.35, 
+            overwrite: 'all',
+            onComplete: () => {
+              if (isLyricsMode) heroInfo.style.visibility = 'hidden';
+            }
+          });
+        } else {
+          heroInfo.style.visibility = 'hidden';
+        }
       }
-      if (reviews && typeof gsap !== 'undefined') {
-        gsap.to(reviews, { opacity: 0, y: 15, duration: 0.4, overwrite: 'auto' });
+      if (reviews) {
+        if (typeof gsap !== 'undefined') {
+          gsap.to(reviews, { 
+            opacity: 0, 
+            y: 15, 
+            duration: 0.35, 
+            overwrite: 'all',
+            onComplete: () => {
+              if (isLyricsMode) reviews.style.visibility = 'hidden';
+            }
+          });
+        } else {
+          reviews.style.visibility = 'hidden';
+        }
       }
 
       // 4. Load lyrics for currently active song
@@ -803,11 +827,17 @@
 
       // 3. Fade top-left info and reviews back in
       const heroInfo = document.querySelector('.hero-info-panel');
-      if (heroInfo && typeof gsap !== 'undefined') {
-        gsap.to(heroInfo, { opacity: 1, y: 0, duration: 0.5, delay: 0.2, overwrite: 'auto' });
+      if (heroInfo) {
+        heroInfo.style.visibility = 'visible';
+        if (typeof gsap !== 'undefined') {
+          gsap.to(heroInfo, { opacity: 1, y: 0, duration: 0.5, delay: 0.2, overwrite: 'all' });
+        }
       }
-      if (reviews && typeof gsap !== 'undefined') {
-        gsap.to(reviews, { opacity: 1, y: 0, duration: 0.5, delay: 0.2, overwrite: 'auto' });
+      if (reviews) {
+        reviews.style.visibility = 'visible';
+        if (typeof gsap !== 'undefined') {
+          gsap.to(reviews, { opacity: 1, y: 0, duration: 0.5, delay: 0.2, overwrite: 'all' });
+        }
       }
     }
   }

@@ -75,13 +75,15 @@ function selectSong(idx, playImmediately = true, options = {}) {
         if (r2Pub) r2Pub.textContent = (song.reviews && song.reviews[1]) ? song.reviews[1].pub : 'MASTER TAPE';
         if (r2Quote) r2Quote.textContent = (song.reviews && song.reviews[1]) ? `“${song.reviews[1].quote}”` : '“PRISTINE ACOUSTIC CLARITY AND DYNAMIC RANGE”';
 
-        gsap.to('#song-title, #song-artist, #song-year, #song-album, #rev1-pub, #rev1-quote, #rev2-pub, #rev2-quote', {
-          opacity: 1,
-          y: 0,
-          duration: 0.45,
-          stagger: 0.02,
-          ease: "aurixGlide"
-        });
+        if (!window.isLyricsMode) {
+          gsap.to('#song-title, #song-artist, #song-year, #song-album, #rev1-pub, #rev1-quote, #rev2-pub, #rev2-quote', {
+            opacity: 1,
+            y: 0,
+            duration: 0.45,
+            stagger: 0.02,
+            ease: "aurixGlide"
+          });
+        }
       }
     });
   }

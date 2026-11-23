@@ -432,6 +432,10 @@ async function updateSongMetadata(songIndex, updatedData) {
     if (r1Quote && song.reviews && song.reviews[0]) r1Quote.textContent = `“${song.reviews[0].quote}”`;
     if (r2Pub && song.reviews && song.reviews[1]) r2Pub.textContent = song.reviews[1].pub;
     if (r2Quote && song.reviews && song.reviews[1]) r2Quote.textContent = `“${song.reviews[1].quote}”`;
+
+    if (typeof updateMediaSessionMetadata === 'function') {
+      updateMediaSessionMetadata(song);
+    }
   }
 
   // Refresh Dropdown list

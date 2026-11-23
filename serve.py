@@ -28,6 +28,7 @@ class RangeHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Length", str(total_size))
             self.send_header("Accept-Ranges", "bytes")
             self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
             self.end_headers()
             return f
 

@@ -33,6 +33,17 @@ function updateHoverAndRaycast(clientX = lastPointerX, clientY = lastPointerY) {
 
   if (isDragging) return;
 
+  if (window.isLyricsMode) {
+    discMeshes.forEach((m) => {
+      m.userData.targetHover = 0;
+      m.userData.targetTiltX = 0;
+      m.userData.targetTiltY = 0;
+    });
+    hoveredDiscIndex = -1;
+    if (renderer && renderer.domElement) renderer.domElement.style.cursor = 'default';
+    return;
+  }
+
   // Check if mouse is hovering over floating HTML overlays
   const el = document.elementFromPoint(clientX, clientY);
   if (el && el.closest('.nav, .audio-player-dock, .hero-info-panel, .nav-dropdown, #page-backdrop, .lyrics-dock, .lyrics-view')) {
@@ -221,6 +232,7 @@ function triggerWheelStep(direction, delta, now) {
 
 window.addEventListener('wheel', (e) => {
   if (e.ctrlKey) return;
+  if (window.isLyricsMode) return;
   if (isDropdownOpen || e.target.closest('.nav-dropdown') || e.target.closest('.lyrics-view') || e.target.closest('.lyrics-dock')) return;
 
   isPointerOverCanvas = true;
@@ -285,6 +297,14 @@ window.addEventListener('wheel', (e) => {
 
 // Keyboard Arrow Keys support
 window.addEventListener('keydown', (e) => {
+  if (window.isLyricsMode) {
+    if (e.key === ' ') {
+      e.preventDefault();
+      if (playBtn) playBtn.click();
+    }
+    return;
+  }
+
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
     const current = getCarouselTargetIndex();
     const next = Math.min(SONGS.length - 1, current + 1);
@@ -306,6 +326,13 @@ window.addEventListener('click', (e) => {
   const hit = getDiscIntersection(e.clientX, e.clientY);
   const hitIdx = hit ? hit.index : -1;
   if (hitIdx !== -1) {
+    if (window.isLyricsMode) {
+      if (hitIdx === activeIndex && playBtn) {
+        playBtn.click();
+      }
+      return;
+    }
+
     // Physical tactile spring bounce on whichever disc was clicked
     if (discMeshes[hitIdx] && typeof gsap !== 'undefined') {
       gsap.to(discMeshes[hitIdx].position, {
