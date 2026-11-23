@@ -37,10 +37,18 @@ function cleanReviewQuote(q) {
   let str = q.trim();
   // Remove leading attribution artifacts like "'s Christian Hoard," or "that "
   str = str.replace(/^[s'\u2019]+\s+/i, '');
-  str = str.replace(/^(?:that|who|and|in a [a-z]+ review|concluding that)\s+/i, '');
+  str = str.replace(/^(?:that|who|and|in a [a-z]+ review|concluding that|stating that|stating)\s+/i, '');
   str = str.replace(/^[\s,;:\-–—\.]+|[\s,;:\-–—\.]+$/g, '');
   // Normalize whitespace
   str = str.replace(/\s+/g, ' ');
+
+  // Truncate quotes to max ~52 chars so they stay punchy and never collide with the CD
+  if (str.length > 54) {
+    const cut = str.slice(0, 50).trim();
+    const lastSpace = cut.lastIndexOf(' ');
+    str = (lastSpace > 25 ? cut.slice(0, lastSpace) : cut) + '...';
+  }
+
   return str.toUpperCase();
 }
 
@@ -90,27 +98,27 @@ async function fetchOnlineReviews(artist, title, album) {
         const extracted = [];
 
         for (const pub of KNOWN_MUSIC_PUBLICATIONS) {
-          // Pattern A: Publication ... "quote"
+          // Pattern A: Publication ... "quote" (favor punchy phrases <= 80 chars)
           const patA = new RegExp(
-            `${pub.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]{0,120}?[“"']([^“"']{16,150})[”"']`,
+            `${pub.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]{0,120}?[“"']([^“"']{12,85})[”"']`,
             'i'
           );
           const matchA = sectionText.match(patA);
           if (matchA) {
             const cleaned = cleanReviewQuote(matchA[1]);
-            if (cleaned.length >= 15 && !extracted.some(r => r.pub === pub.toUpperCase())) {
+            if (cleaned.length >= 10 && !extracted.some(r => r.pub === pub.toUpperCase())) {
               extracted.push({ pub: pub.toUpperCase(), quote: cleaned });
             }
           } else {
             // Pattern B: "quote" ... Publication
             const patB = new RegExp(
-              `[“"']([^“"']{16,150})[”"'][\\s\\S]{0,60}?${pub.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+              `[“"']([^“"']{12,85})[”"'][\\s\\S]{0,60}?${pub.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
               'i'
             );
             const matchB = sectionText.match(patB);
             if (matchB) {
               const cleaned = cleanReviewQuote(matchB[1]);
-              if (cleaned.length >= 15 && !extracted.some(r => r.pub === pub.toUpperCase())) {
+              if (cleaned.length >= 10 && !extracted.some(r => r.pub === pub.toUpperCase())) {
                 extracted.push({ pub: pub.toUpperCase(), quote: cleaned });
               }
             }

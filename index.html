@@ -637,46 +637,74 @@
        ======================================================== */
     .reviews-container {
       position: absolute;
-      bottom: 58px;
+      bottom: 26px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 64px;
+      gap: 52px;
       z-index: 25;
       pointer-events: none;
       text-align: center;
+      max-width: 580px;
     }
 
     .review-col {
       display: flex;
       flex-direction: column;
       align-items: center;
-      max-width: 250px;
+      max-width: 260px;
     }
 
     .review-stars {
       display: flex;
-      gap: 4px;
-      margin-bottom: 6px;
+      gap: 3px;
+      margin-bottom: 4px;
       color: #000;
-      font-size: 0.82rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
     }
 
     .review-pub {
-      font-size: 0.65rem;
+      font-size: 0.62rem;
       text-transform: uppercase;
-      letter-spacing: 0.2em;
-      opacity: 0.6;
-      margin-bottom: 6px;
+      letter-spacing: 0.22em;
+      opacity: 0.55;
+      margin-bottom: 4px;
       font-weight: 600;
     }
 
     .review-quote {
       font-family: var(--font-serif);
-      font-size: 1.12rem;
-      line-height: 1.25;
+      font-size: 0.82rem;
+      line-height: 1.35;
       text-transform: uppercase;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.025em;
+      color: #111;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 1100px) and (min-width: 901px) {
+      .reviews-container {
+        max-width: 440px;
+        gap: 28px;
+        bottom: 22px;
+      }
+      .review-col {
+        max-width: 200px;
+      }
+      .review-quote {
+        font-size: 0.75rem;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .reviews-container {
+        display: none !important;
+      }
     }
 
     /* ========================================================
@@ -1727,17 +1755,17 @@
   </div>
 
   <!-- Modular AuriX Audio & 3D WebGL Engine -->
-  <script src="./js/state.js?v=4"></script>
-  <script src="./js/lyrics-data.js?v=4"></script>
-  <script src="./js/navigation.js?v=4"></script>
-  <script src="./js/audio-player.js?v=4"></script>
-  <script src="./js/cd-scene.js?v=4"></script>
-  <script src="./js/scribble.js?v=4"></script>
-  <script src="./js/lyrics.js?v=4"></script>
-  <script src="./js/reviews.js?v=4"></script>
-  <script src="./js/carousel.js?v=4"></script>
-  <script src="./js/interactions.js?v=4"></script>
-  <script src="./js/add-song.js?v=4"></script>
-  <script src="./js/main.js?v=4"></script>
+  <script src="./js/state.js?v=5"></script>
+  <script src="./js/lyrics-data.js?v=5"></script>
+  <script src="./js/navigation.js?v=5"></script>
+  <script src="./js/audio-player.js?v=5"></script>
+  <script src="./js/cd-scene.js?v=5"></script>
+  <script src="./js/scribble.js?v=5"></script>
+  <script src="./js/lyrics.js?v=5"></script>
+  <script src="./js/reviews.js?v=5"></script>
+  <script src="./js/carousel.js?v=5"></script>
+  <script src="./js/interactions.js?v=5"></script>
+  <script src="./js/add-song.js?v=5"></script>
+  <script src="./js/main.js?v=5"></script>
 </body>
 </html>
