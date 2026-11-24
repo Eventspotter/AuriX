@@ -249,7 +249,16 @@ function triggerWheelStep(direction, delta, now) {
 
 window.addEventListener('wheel', (e) => {
   if (e.ctrlKey) return;
-  if (isDropdownOpen || e.target.closest('.nav-dropdown') || e.target.closest('.lyrics-view') || e.target.closest('.lyrics-dock')) return;
+  // Disable background CD wheel scroll when cursor is over lyrics view, controls dock, dropdown, or rotary dial zone
+  if (isDropdownOpen || 
+      e.target.closest('.nav-dropdown') || 
+      e.target.closest('.lyrics-view') || 
+      e.target.closest('.lyrics-dock') ||
+      e.target.closest('.lyrics-rotary-dial') ||
+      e.target.closest('.lyrics-dial-hover-zone') ||
+      window.isHoveringDial) {
+    return;
+  }
 
   isPointerOverCanvas = true;
   if (e.clientX !== undefined && e.clientY !== undefined) {

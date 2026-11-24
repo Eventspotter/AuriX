@@ -930,6 +930,12 @@
   function toggleLyricsMode() {
     isLyricsMode = !isLyricsMode;
     window.isLyricsMode = isLyricsMode;
+    if (isLyricsMode) {
+      document.body.classList.add('lyrics-mode-active');
+    } else {
+      document.body.classList.remove('lyrics-mode-active');
+      window.isHoveringDial = false;
+    }
 
     const lyricsBtn = document.getElementById('lyrics-toggle-btn');
     const lyricsControls = document.getElementById('lyrics-controls');
@@ -1115,16 +1121,24 @@
 
   /* --------------------------------------------------------
      9. ROTARY DIAL CONTROLLER (Lyrics Mode)
-     Interactive dial modeled after https://animation-gallery-xi.vercel.app
-     - Hidden by default; opens when hovering or pressing dial button
-     - Scrub smoothly with mouse wheel or vertical drag gesture
+     1:1 Implementation of the Transition Dial Physics from animation-gallery-xi.vercel.app:
+     - Exact Ka = 0.074 angular step constant
+     - Continuous floating position Z & dampening deltaY / f1
+     - Lerp spring physics: it += (Z - it) * 0.16
+     - Radial projection: translate(g, A) -> rotate(k) -> translate(R + P, 0)
      -------------------------------------------------------- */
-  let rotaryDialAngle = 0;
+  const DIAL_KA = 0.22; // Clean, readable angular separation between song titles
+  const DIAL_RADIUS = 160; // Curve closely surrounding the center knob
+  const DIAL_F1 = DIAL_RADIUS * DIAL_KA; // Scrub friction dampener
+
+  let dialTargetIndex = 0; // Floating target index (Z)
+  let dialCurrentIndex = 0; // Interpolated current index (it)
+  let dialAnimFrame = null;
+  let dialSnapTimer = null;
   let isRotaryDragging = false;
   let rotaryDragStartY = 0;
   let isRotaryOpen = false;
   let rotaryHideTimer = null;
-  let rotaryAccumulatedDelta = 0;
 
   function renderRotaryDialTracks() {
     const trackList = document.getElementById('rotary-track-list');
@@ -1150,77 +1164,114 @@
       item.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (typeof playSongEndScrollAnimation === 'function') {
-          const dir = idx >= getActiveIndex() ? 1 : -1;
-          playSongEndScrollAnimation(dir, () => {
-            if (typeof selectSong === 'function') selectSong(idx, true);
-          });
-        } else if (typeof selectSong === 'function') {
-          selectSong(idx, true);
-        }
+        dialTargetIndex = idx;
+        startDialAnimationLoop();
+        triggerSongTransition(idx);
       });
 
       trackList.appendChild(item);
     });
 
-    updateRotaryDialSelection(getActiveIndex(), true);
+    dialTargetIndex = getActiveIndex();
+    dialCurrentIndex = dialTargetIndex;
+    updateRotaryDialDisplay();
   }
 
-  function updateRotaryDialSelection(activeIdx, instant = false) {
+  // Animation Gallery smooth interpolation loop
+  function startDialAnimationLoop() {
+    if (dialAnimFrame) return;
+
+    function step() {
+      const diff = dialTargetIndex - dialCurrentIndex;
+      if (Math.abs(diff) > 0.005) {
+        dialCurrentIndex += diff * 0.16; // Lerp spring easing
+        updateRotaryDialDisplay();
+        dialAnimFrame = requestAnimationFrame(step);
+      } else {
+        dialCurrentIndex = dialTargetIndex;
+        updateRotaryDialDisplay();
+        dialAnimFrame = null;
+      }
+    }
+    dialAnimFrame = requestAnimationFrame(step);
+  }
+
+  function updateRotaryDialDisplay() {
     const trackList = document.getElementById('rotary-track-list');
     const wheel = document.getElementById('rotary-disc-wheel');
     if (!trackList) return;
 
     const items = trackList.querySelectorAll('.rotary-track-item');
-    const totalItems = items.length;
+    const allSongs = (typeof SONGS !== 'undefined' ? SONGS : window.SONGS) || [];
+    const N = allSongs.length;
+    if (N === 0) return;
 
-    // Semi-circular radius parameters (hugging the outer perimeter of the 320px viewport disc)
-    const arcRadius = 160; 
-    const itemHeight = 36;
-    const centerOffset = -activeIdx * itemHeight;
+    const roundedIdx = Math.round(dialCurrentIndex);
 
     items.forEach((item, idx) => {
-      const isActive = (idx === activeIdx);
+      // Angular distance k from current dial position
+      const k = (idx - dialCurrentIndex) * DIAL_KA;
+      const absK = Math.abs(k);
+
+      // Animation Gallery cull range: hide items outside visible arc
+      if (absK > 1.35) {
+        item.style.display = 'none';
+        return;
+      }
+      item.style.display = 'flex';
+
+      const isActive = (idx === roundedIdx);
       if (isActive) {
         item.classList.add('is-active');
       } else {
         item.classList.remove('is-active');
       }
 
-      // Vertical distance in steps from current active song
-      const dist = idx - activeIdx;
-      const absDist = Math.abs(dist);
+      // Exact Animation Gallery radial displacement:
+      // text is pushed along circular arc tangent
+      const sinK = Math.sin(k);
+      const cosK = Math.cos(k);
 
-      // Arc angle relative to center needle (3 o'clock / 0 deg)
-      // Step roughly 16 degrees per item along the semi-circle
-      const angleDeg = dist * 16;
-      const angleRad = (angleDeg * Math.PI) / 180;
+      // Relative to needle at 3 o'clock:
+      // Positive curve displacement around circular hub
+      const x = Math.round(DIAL_RADIUS * (cosK - 1) + 26 * (1 - Math.min(1, Math.abs(idx - dialCurrentIndex))));
+      const y = Math.round(DIAL_RADIUS * sinK);
 
-      // Natural semi-circular bulge: positive X push along the curved circumference
-      const curveX = Math.round(arcRadius * (1 - Math.cos(angleRad)));
-      const itemOpacity = Math.max(0.12, 1 - absDist * 0.24);
-
-      // Shift list vertically so activeIdx is always centered at the indicator needle (0px)
-      const translateY = dist * itemHeight;
-
-      item.style.transform = `translate3d(${curveX}px, ${translateY}px, 0)`;
-      item.style.opacity = isActive ? '1' : itemOpacity.toFixed(2);
+      const opacity = Math.max(0.25, 1 - absK * 0.55);
+      item.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      item.style.opacity = isActive ? '1' : opacity.toFixed(2);
     });
 
-    // Rotate dial wheel smoothly based on track index step
+    // Rotate center tactile wheel proportionally
+    if (wheel) {
+      const angleDeg = dialCurrentIndex * (DIAL_KA * (180 / Math.PI)) * 0.8;
+      wheel.style.transform = `rotate(${angleDeg}deg)`;
+    }
+  }
+
+  function updateRotaryDialSelection(activeIdx, instant = false) {
+    dialTargetIndex = activeIdx;
+    if (instant) {
+      dialCurrentIndex = activeIdx;
+      updateRotaryDialDisplay();
+    } else {
+      startDialAnimationLoop();
+    }
+  }
+
+  function triggerSongTransition(targetIdx) {
     const allSongs = (typeof SONGS !== 'undefined' ? SONGS : window.SONGS) || [];
-    if (wheel && allSongs.length > 0) {
-      const stepAngle = 360 / Math.max(8, allSongs.length);
-      rotaryDialAngle = activeIdx * stepAngle;
-      if (typeof gsap !== 'undefined' && !instant) {
-        gsap.to(wheel, {
-          rotation: rotaryDialAngle,
-          duration: 0.35,
-          ease: "power2.out"
-        });
-      } else {
-        wheel.style.transform = `rotate(${rotaryDialAngle}deg)`;
-      }
+    if (!allSongs.length) return;
+    const curIdx = getActiveIndex();
+    if (targetIdx === curIdx) return;
+
+    const dir = targetIdx > curIdx ? 1 : -1;
+    if (typeof playSongEndScrollAnimation === 'function') {
+      playSongEndScrollAnimation(dir, () => {
+        if (typeof selectSong === 'function') selectSong(targetIdx, true);
+      });
+    } else if (typeof selectSong === 'function') {
+      selectSong(targetIdx, true);
     }
   }
 
@@ -1236,6 +1287,7 @@
     const btn = document.getElementById('lyrics-btn-dial-toggle');
     if (!dial) return;
 
+    window.isHoveringDial = true;
     isRotaryOpen = true;
     renderRotaryDialTracks();
     dial.classList.add('is-open');
@@ -1245,7 +1297,7 @@
       gsap.killTweensOf(dial);
       gsap.fromTo(dial,
         { opacity: 0, x: -30, scale: 0.92 },
-        { opacity: 1, x: 0, scale: 1, duration: 0.4, ease: "power3.out" }
+        { opacity: 1, x: 0, scale: 1, duration: 0.35, ease: "power3.out" }
       );
     }
   }
@@ -1256,6 +1308,7 @@
     const btn = document.getElementById('lyrics-btn-dial-toggle');
     if (!dial) return;
 
+    window.isHoveringDial = false;
     isRotaryOpen = false;
     if (btn) btn.classList.remove('is-active');
 
@@ -1265,7 +1318,7 @@
         opacity: 0,
         x: -24,
         scale: 0.92,
-        duration: 0.3,
+        duration: 0.28,
         ease: "power2.in",
         onComplete: () => {
           dial.classList.remove('is-open');
@@ -1295,8 +1348,19 @@
 
   function initRotaryDialInteractions() {
     const dial = document.getElementById('lyrics-rotary-dial');
+    const hoverZone = document.getElementById('lyrics-dial-hover-zone');
     const toggleBtn = document.getElementById('lyrics-btn-dial-toggle');
     const viewport = dial ? dial.querySelector('.rotary-disc-viewport') : null;
+
+    // Hovering directly over the left edge dial position pops it open
+    if (hoverZone) {
+      hoverZone.addEventListener('mouseenter', () => {
+        openRotaryDial();
+      });
+      hoverZone.addEventListener('mouseleave', () => {
+        scheduleRotaryDialClose(800);
+      });
+    }
 
     if (toggleBtn) {
       // Click or Tap toggle button to open/close
@@ -1316,74 +1380,83 @@
     }
 
     if (dial) {
-      // Hovering inside the dial maintains visibility
+      // Hovering inside the dial maintains visibility and disables CD scrolling
       dial.addEventListener('mouseenter', () => {
+        window.isHoveringDial = true;
         clearTimeout(rotaryHideTimer);
       });
       dial.addEventListener('mouseleave', () => {
-        scheduleRotaryDialClose(1200);
+        window.isHoveringDial = false;
+        scheduleRotaryDialClose(1000);
       });
 
-      // Smooth scroll through songs with mouse wheel directly inside dial (Animation Gallery style)
+      // Animation Gallery continuous smooth wheel scrub:
+      // deltaY / f1 continuous increment, spring animation, and snapping on rest
       dial.addEventListener('wheel', (e) => {
         e.preventDefault();
         e.stopPropagation();
         clearTimeout(rotaryHideTimer);
 
-        rotaryAccumulatedDelta += e.deltaY;
-        const threshold = 36; // Snappy, responsive threshold for smooth stepped scrub
+        const allSongs = (typeof SONGS !== 'undefined' ? SONGS : window.SONGS) || [];
+        const maxIdx = Math.max(0, allSongs.length - 1);
+        if (maxIdx <= 0) return;
 
-        if (Math.abs(rotaryAccumulatedDelta) >= threshold) {
-          const dir = rotaryAccumulatedDelta > 0 ? 1 : -1;
-          rotaryAccumulatedDelta = 0;
-          const allSongs = (typeof SONGS !== 'undefined' ? SONGS : window.SONGS) || [];
-          if (allSongs.length > 0) {
-            const curIdx = getActiveIndex();
-            const nextIdx = (curIdx + dir + allSongs.length) % allSongs.length;
-            if (typeof playSongEndScrollAnimation === 'function') {
-              playSongEndScrollAnimation(dir, () => {
-                if (typeof selectSong === 'function') selectSong(nextIdx, true);
-              });
-            } else if (typeof selectSong === 'function') {
-              selectSong(nextIdx, true);
-            }
+        // Exact Animation Gallery formula: Z = clamp(Z + deltaY / f1, 0, max)
+        const stepDelta = e.deltaY / (DIAL_F1 * 0.95);
+        dialTargetIndex = Math.max(0, Math.min(maxIdx, dialTargetIndex + stepDelta));
+        startDialAnimationLoop();
+
+        // Snap to nearest integer on scroll end
+        clearTimeout(dialSnapTimer);
+        dialSnapTimer = setTimeout(() => {
+          const nearest = Math.round(dialTargetIndex);
+          dialTargetIndex = nearest;
+          startDialAnimationLoop();
+
+          // Trigger song transition if index changed
+          if (nearest !== getActiveIndex()) {
+            triggerSongTransition(nearest);
           }
-        }
+        }, 180);
       }, { passive: false });
     }
 
     if (viewport) {
-      // Tactile Drag & Flick interaction
+      // Tactile pointer drag (1:1 with Animation Gallery pointer events)
       viewport.addEventListener('pointerdown', (e) => {
         isRotaryDragging = true;
         rotaryDragStartY = e.clientY;
         clearTimeout(rotaryHideTimer);
+        clearTimeout(dialSnapTimer);
         try { viewport.setPointerCapture(e.pointerId); } catch (_) {}
       });
 
       viewport.addEventListener('pointermove', (e) => {
         if (!isRotaryDragging) return;
-        const deltaY = e.clientY - rotaryDragStartY;
         const allSongs = (typeof SONGS !== 'undefined' ? SONGS : window.SONGS) || [];
-        if (Math.abs(deltaY) > 36 && allSongs.length > 0) {
-          const dir = deltaY > 0 ? 1 : -1;
-          const curIdx = getActiveIndex();
-          const nextIdx = (curIdx + dir + allSongs.length) % allSongs.length;
-          rotaryDragStartY = e.clientY;
-          if (typeof playSongEndScrollAnimation === 'function') {
-            playSongEndScrollAnimation(dir, () => {
-              if (typeof selectSong === 'function') selectSong(nextIdx, true);
-            });
-          } else if (typeof selectSong === 'function') {
-            selectSong(nextIdx, true);
-          }
-        }
+        const maxIdx = Math.max(0, allSongs.length - 1);
+        if (maxIdx <= 0) return;
+
+        const deltaY = e.clientY - rotaryDragStartY;
+        rotaryDragStartY = e.clientY;
+
+        // Continuous drag scrub: Z = clamp(Z - deltaY / f1, 0, max)
+        const stepDelta = deltaY / (DIAL_F1 * 0.85);
+        dialTargetIndex = Math.max(0, Math.min(maxIdx, dialTargetIndex - stepDelta));
+        startDialAnimationLoop();
       });
 
       const stopDrag = (e) => {
         if (isRotaryDragging) {
           isRotaryDragging = false;
           try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
+          
+          const nearest = Math.round(dialTargetIndex);
+          dialTargetIndex = nearest;
+          startDialAnimationLoop();
+          if (nearest !== getActiveIndex()) {
+            triggerSongTransition(nearest);
+          }
           scheduleRotaryDialClose(2000);
         }
       };
