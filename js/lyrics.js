@@ -1172,6 +1172,13 @@
     if (!trackList) return;
 
     const items = trackList.querySelectorAll('.rotary-track-item');
+    const totalItems = items.length;
+
+    // Semi-circular radius parameters (hugging the outer perimeter of the 320px viewport disc)
+    const arcRadius = 160; 
+    const itemHeight = 36;
+    const centerOffset = -activeIdx * itemHeight;
+
     items.forEach((item, idx) => {
       const isActive = (idx === activeIdx);
       if (isActive) {
@@ -1180,12 +1187,23 @@
         item.classList.remove('is-active');
       }
 
-      // Curved radius displacement based on distance from active index (Animation Gallery style)
+      // Vertical distance in steps from current active song
       const dist = idx - activeIdx;
       const absDist = Math.abs(dist);
-      const curveX = Math.max(0, 20 - absDist * 4);
-      const itemOpacity = Math.max(0.18, 1 - absDist * 0.22);
-      item.style.transform = `translateX(${curveX}px)`;
+
+      // Arc angle relative to center needle (3 o'clock / 0 deg)
+      // Step roughly 16 degrees per item along the semi-circle
+      const angleDeg = dist * 16;
+      const angleRad = (angleDeg * Math.PI) / 180;
+
+      // Natural semi-circular bulge: positive X push along the curved circumference
+      const curveX = Math.round(arcRadius * (1 - Math.cos(angleRad)));
+      const itemOpacity = Math.max(0.12, 1 - absDist * 0.24);
+
+      // Shift list vertically so activeIdx is always centered at the indicator needle (0px)
+      const translateY = dist * itemHeight;
+
+      item.style.transform = `translate3d(${curveX}px, ${translateY}px, 0)`;
       item.style.opacity = isActive ? '1' : itemOpacity.toFixed(2);
     });
 
@@ -1197,7 +1215,7 @@
       if (typeof gsap !== 'undefined' && !instant) {
         gsap.to(wheel, {
           rotation: rotaryDialAngle,
-          duration: 0.45,
+          duration: 0.35,
           ease: "power2.out"
         });
       } else {
@@ -1313,7 +1331,7 @@
         clearTimeout(rotaryHideTimer);
 
         rotaryAccumulatedDelta += e.deltaY;
-        const threshold = 48; // Responsive threshold for smooth stepped scrub
+        const threshold = 36; // Snappy, responsive threshold for smooth stepped scrub
 
         if (Math.abs(rotaryAccumulatedDelta) >= threshold) {
           const dir = rotaryAccumulatedDelta > 0 ? 1 : -1;
