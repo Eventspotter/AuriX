@@ -959,7 +959,7 @@
       flex-direction: column;
       pointer-events: none;
       opacity: 0;
-      overflow: hidden;
+      overflow: visible;
       padding: 12px 16px 24px 16px;
       background: transparent !important;
       backdrop-filter: none !important;
@@ -1020,6 +1020,8 @@
       z-index: 2;
       flex: 1;
       overflow: hidden;
+      margin-left: -60px;
+      margin-right: -20px;
       pointer-events: auto;
       mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%);
       -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%);
@@ -1028,8 +1030,8 @@
     .lyrics-scroller {
       position: absolute;
       top: 0;
-      left: 0;
-      right: 0;
+      left: 60px;
+      right: 20px;
       will-change: transform;
       padding-top: 40px;
       padding-bottom: 240px;
@@ -1165,6 +1167,14 @@
         top: 80px;
         bottom: 110px;
         padding: 20px;
+      }
+      .lyrics-scroller-viewport {
+        margin-left: -16px;
+        margin-right: -10px;
+      }
+      .lyrics-scroller {
+        left: 16px;
+        right: 10px;
       }
       .lyrics-dock {
         right: 20px;
